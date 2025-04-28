@@ -539,7 +539,7 @@ const renderOptimized = () => {
 
 <div className={styles.summaryRow}>
   <span className={styles.totalExpenses}>
-    Gesamtausgaben: {formatAmount(totalExpenses)} €
+    Ausgaben: <strong>{formatAmount(totalExpenses)} €</strong>
   </span>
   <button
     className={styles.anchorLink}
