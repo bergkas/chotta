@@ -490,6 +490,32 @@
   padding: 8px;           /* zu .modalInput passend */
 }
 
+/* kleine Summenanzeige unter den Inputs */
+/* Standard-Summary */
+.inputSummary {
+  font-size: 0.85em;
+  text-align: right;
+  margin: 8px 10px 0;
+  font-family: "Montserrat", sans-serif;
+}
+
+/* Neutral (grau) */
+.summaryNeutral {
+  color: #6b7280;
+}
+
+/* Valid (grün) */
+.summaryValid {
+  color: #10b981;
+}
+
+/* Invalid (rot) */
+.summaryInvalid {
+  color: #ef4444;
+}
+
+
+
 .mt4 {
   margin-top: 16px;
 }

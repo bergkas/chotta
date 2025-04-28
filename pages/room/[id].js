@@ -239,58 +239,111 @@ async function addParticipant() {
     	}
   	};
 
-  // --- Actions: Expense ---
-  const addExpense = async () => {
-    if (!newExpenseTitle || !newExpenseAmount || !payerId) {
-      return openConfirm('Bitte Titel, Betrag und Zahler angeben!', () => {});
+// --- Actions: Expense ---
+const addExpense = async () => {
+  // 1) Pflichtfelder prüfen
+  if (!newExpenseTitle || !newExpenseAmount || !payerId) {
+    return openInfo('Bitte Titel, Betrag und Zahler angeben.');
+  }
+  const total = parseFloat(newExpenseAmount);
+
+  // 2) Distribution-Validierung vor Insert
+  if (distributionType === 'PERCENTAGE') {
+    const sumPct = Object.values(percentages).reduce((s, v) => s + Number(v), 0);
+    if (sumPct !== 100) {
+      return openInfo('Summe der Prozente muss genau 100 % betragen.');
     }
-    const total = parseFloat(newExpenseAmount);
-    const { data: exp, error } = await supabase
-      .from('expenses')
-      .insert([{
-        room_id: id,
-        title: newExpenseTitle,
-        amount: total,
-        paid_by: payerId,
-        distribution_type: distributionType
-      }])
-      .select().single();
-    if (error) return openConfirm('Fehler beim Speichern der Ausgabe.', () => {});
-    const mk = (pid, amt, pct) => ({ expense_id: exp.id, participant_id: pid, share_amount: amt, ...(pct != null && { share_percent: pct }) });
-    let shares = [];
-    switch (distributionType) {
-      case 'EQUAL_ALL':
-        shares = participants.map((p) => mk(p.id, parseFloat((total / participants.length).toFixed(2))));
-        break;
-      case 'EQUAL_SOME':
-        if (!selectedParticipants.length) return openConfirm('Bitte Personen auswählen!', () => {});
-        shares = selectedParticipants.map((pid) => mk(pid, parseFloat((total / selectedParticipants.length).toFixed(2))));
-        break;
-      case 'PERCENTAGE':
-        if (Object.values(percentages).reduce((s, v) => s + Number(v), 0) !== 100)
-          return openConfirm('Summe der Prozente muss 100% sein.', () => {});
-        shares = Object.entries(percentages).map(([pid, p]) => mk(pid, parseFloat(((total * p) / 100).toFixed(2)), Number(p)));
-        break;
-      case 'FIXED':
-        if (parseFloat(Object.values(amounts).reduce((s, a) => s + Number(a), 0).toFixed(2)) !== total)
-          return openConfirm('Einzelbeträge ergeben nicht Gesamtbetrag.', () => {});
-        shares = Object.entries(amounts).map(([pid, a]) => mk(pid, parseFloat(Number(a).toFixed(2))));
-        break;
-      default:
-        break;
+  }
+  if (distributionType === 'FIXED') {
+    const sumAmt = parseFloat(
+      Object.values(amounts)
+        .reduce((s, a) => s + Number(a), 0)
+        .toFixed(2)
+    );
+    if (sumAmt !== total) {
+      return openInfo('Einzelbeträge müssen genau dem Gesamtbetrag entsprechen.');
     }
-    if (shares.length) await supabase.from('expense_shares').insert(shares);
-    // reset
-    setNewExpenseTitle('');
-    setNewExpenseAmount('');
-    setPayerId('');
-    setDistributionType('EQUAL_ALL');
-    setSelectedParticipants([]);
-    setPercentages({});
-    setAmounts({});
-    fetchExpenses();
-    setShowExpenseModal(false);
-  };
+  }
+
+  // 3) Expense anlegen
+  const { data: exp, error: expError } = await supabase
+    .from('expenses')
+    .insert([{
+      room_id: id,
+      title: newExpenseTitle,
+      amount: total,
+      paid_by: payerId,
+      distribution_type: distributionType
+    }])
+    .select()
+    .single();
+  if (expError) {
+    return openInfo('Fehler beim Speichern der Ausgabe.');
+  }
+
+  // 4) Shares zusammenstellen
+  const mk = (pid, amt, pct) => ({
+    expense_id: exp.id,
+    participant_id: pid,
+    share_amount: amt,
+    ...(pct != null && { share_percent: pct })
+  });
+
+  let shares = [];
+  switch (distributionType) {
+    case 'EQUAL_ALL':
+      shares = participants.map(p =>
+        mk(p.id, parseFloat((total / participants.length).toFixed(2)))
+      );
+      break;
+
+    case 'EQUAL_SOME':
+      if (!selectedParticipants.length) {
+        return openInfo('Bitte Personen auswählen!');
+      }
+      shares = selectedParticipants.map(pid =>
+        mk(pid, parseFloat((total / selectedParticipants.length).toFixed(2)))
+      );
+      break;
+
+    case 'PERCENTAGE':
+      shares = Object.entries(percentages).map(([pid, pct]) =>
+        mk(pid, parseFloat(((total * pct) / 100).toFixed(2)), Number(pct))
+      );
+      break;
+
+    case 'FIXED':
+      shares = Object.entries(amounts).map(([pid, amt]) =>
+        mk(pid, parseFloat(Number(amt).toFixed(2)))
+      );
+      break;
+
+    default:
+      break;
+  }
+
+  // 5) Shares speichern
+  if (shares.length) {
+    const { error: shareError } = await supabase
+      .from('expense_shares')
+      .insert(shares);
+    if (shareError) {
+      return openInfo('Fehler beim Speichern der Anteile.');
+    }
+  }
+
+  // 6) Cleanup & Refresh
+  setNewExpenseTitle('');
+  setNewExpenseAmount('');
+  setPayerId('');
+  setDistributionType('EQUAL_ALL');
+  setSelectedParticipants([]);
+  setPercentages({});
+  setAmounts({});
+  fetchExpenses();
+  setShowExpenseModal(false);
+};
+
 
   const deleteExpense = (eid) =>
     openConfirm('Ausgabe löschen?', async () => {
@@ -674,117 +727,160 @@ const renderOptimized = () => {
 
 
 
-      <Modal isOpen={showExpenseModal} onClose={() => setShowExpenseModal(false)} title="Neue Ausgabe">
-<input
-  className={styles.modalInput}
-  placeholder="Titel"
-  value={newExpenseTitle}
-  onChange={(e) => setNewExpenseTitle(e.target.value)}
-/>
-<input
-  className={styles.modalInput}
-  type="number"
-  placeholder="Betrag"
-  value={newExpenseAmount}
-  onChange={(e) => setNewExpenseAmount(e.target.value)}
-/>
-<select
-  className={styles.modalInput}
-  value={payerId}
-  onChange={(e) => setPayerId(e.target.value)}
->
-  <option value="">Wer hat bezahlt?</option>
-  {participants.map((p) => (
-    <option key={p.id} value={p.id}>
-      {p.name}
-    </option>
-  ))}
-</select>
-<select
-  className={styles.modalInput}
-  value={distributionType}
-  onChange={(e) => setDistributionType(e.target.value)}
->
-  <option value="EQUAL_ALL">Gleich (alle)</option>
-  <option value="EQUAL_SOME">Gleich (ausgewählt)</option>
-  <option value="PERCENTAGE">Prozentual</option>
-  <option value="FIXED">Festbeträge</option>
-</select>
+<Modal isOpen={showExpenseModal} onClose={() => setShowExpenseModal(false)} title="Neue Ausgabe">
+  <input
+    className={styles.modalInput}
+    placeholder="Titel"
+    value={newExpenseTitle}
+    onChange={(e) => setNewExpenseTitle(e.target.value)}
+  />
+  <input
+    className={styles.modalInput}
+    type="number"
+    placeholder="Betrag"
+    value={newExpenseAmount}
+    onChange={(e) => setNewExpenseAmount(e.target.value)}
+  />
 
-{distributionType === 'EQUAL_SOME' && (
-  <div className={styles.optionGrid}>
+  <select
+    className={styles.modalInput}
+    value={payerId}
+    onChange={(e) => setPayerId(e.target.value)}
+  >
+    <option value="">Wer hat bezahlt?</option>
     {participants.map((p) => (
-      <label key={p.id} className={styles.optionLabel}>
-        <input
-          type="checkbox"
-          checked={selectedParticipants.includes(p.id)}
-          onChange={() =>
-            setSelectedParticipants((prev) =>
-              prev.includes(p.id)
-                ? prev.filter((x) => x !== p.id)
-                : [...prev, p.id]
-            )
-          }
-        />
+      <option key={p.id} value={p.id}>
         {p.name}
-      </label>
+      </option>
     ))}
-  </div>
-)}
+  </select>
 
+  <select
+    className={styles.modalInput}
+    value={distributionType}
+    onChange={(e) => setDistributionType(e.target.value)}
+  >
+    <option value="EQUAL_ALL">Gleich (alle)</option>
+    <option value="EQUAL_SOME">Gleich (ausgewählt)</option>
+    <option value="PERCENTAGE">Prozentual</option>
+    <option value="FIXED">Festbeträge</option>
+  </select>
+
+  {/* EQUAL_SOME */}
+  {distributionType === 'EQUAL_SOME' && (
+    <div className={styles.optionGrid}>
+      {participants.map((p) => (
+        <label key={p.id} className={styles.optionLabel}>
+          <input
+            type="checkbox"
+            checked={selectedParticipants.includes(p.id)}
+            onChange={() =>
+              setSelectedParticipants((prev) =>
+                prev.includes(p.id)
+                  ? prev.filter((x) => x !== p.id)
+                  : [...prev, p.id]
+              )
+            }
+          />
+          {p.name}
+        </label>
+      ))}
+    </div>
+  )}
+
+{/* PERCENTAGE */}
 {distributionType === 'PERCENTAGE' && (
-  <div className={styles.optionList}>
-    {participants.map((p) => (
-      <div key={p.id} className={styles.optionRow}>
-        <span>{p.name}</span>
-        <input
-          className={`${styles.modalInput} ${styles.inputSmall}`}
-          type="number"
-          placeholder="%"
-          value={percentages[p.id] || ''}
-          onChange={(e) =>
-            setPercentages((prev) => ({
-              ...prev,
-              [p.id]: e.target.value
-            }))
-          }
-        />
-        <span>%</span>
-      </div>
-    ))}
-  </div>
+  <>
+    <div className={styles.optionList}>
+      {participants.map((p) => (
+        <div key={p.id} className={styles.optionRow}>
+          <span>{p.name}</span>
+          <input
+            className={`${styles.modalInput} ${styles.inputSmall}`}
+            type="number"
+            placeholder="%"
+            value={percentages[p.id] || ''}
+            onChange={(e) =>
+              setPercentages((prev) => ({
+                ...prev,
+                [p.id]: e.target.value
+              }))
+            }
+          />
+          <span>%</span>
+        </div>
+      ))}
+    </div>
+
+    {(() => {
+      const sumPct = Object.values(percentages).reduce((s, v) => s + Number(v), 0);
+      let stateClass = styles.summaryNeutral;
+      if (sumPct === 0) stateClass = styles.summaryNeutral;
+      else if (sumPct === 100) stateClass = styles.summaryValid;
+      else stateClass = styles.summaryInvalid;
+
+      return (
+        <div className={`${styles.inputSummary} ${stateClass}`}>
+          {sumPct}% von 100%
+        </div>
+      );
+    })()}
+  </>
 )}
 
+
+{/* FIXED */}
 {distributionType === 'FIXED' && (
-  <div className={styles.optionList}>
-    {participants.map((p) => (
-      <div key={p.id} className={styles.optionRow}>
-        <span>{p.name}</span>
-        <input
-          className={`${styles.modalInput} ${styles.inputSmall}`}
-          type="number"
-          placeholder="€"
-          value={amounts[p.id] || ''}
-          onChange={(e) =>
-            setAmounts((prev) => ({
-              ...prev,
-              [p.id]: e.target.value
-            }))
-          }
-        />
-        <span>€</span>
-      </div>
-    ))}
-  </div>
+  <>
+    <div className={styles.optionList}>
+      {participants.map((p) => (
+        <div key={p.id} className={styles.optionRow}>
+          <span>{p.name}</span>
+          <input
+            className={`${styles.modalInput} ${styles.inputSmall}`}
+            type="number"
+            placeholder="€"
+            value={amounts[p.id] || ''}
+            onChange={(e) =>
+              setAmounts((prev) => ({
+                ...prev,
+                [p.id]: e.target.value
+              }))
+            }
+          />
+          <span>€</span>
+        </div>
+      ))}
+    </div>
+
+    {(() => {
+      const sumAmt = parseFloat(
+        Object.values(amounts).reduce((s, a) => s + Number(a), 0).toFixed(2)
+      );
+      const total  = parseFloat(newExpenseAmount || 0);
+      let stateClass = styles.summaryNeutral;
+      if (sumAmt === 0) stateClass = styles.summaryNeutral;
+      else if (sumAmt === total) stateClass = styles.summaryValid;
+      else stateClass = styles.summaryInvalid;
+
+      return (
+        <div className={`${styles.inputSummary} ${stateClass}`}>
+          {sumAmt.toFixed(2)} € von {total.toFixed(2)} €
+        </div>
+      );
+    })()}
+  </>
 )}
 
-<button
-  className={`${styles.btnAdd} ${styles.mt4}`}
-  onClick={addExpense}
->
-  <FaPlus /> Hinzufügen
-</button>
-      </Modal>
+
+  <button
+    className={`${styles.btnAdd} ${styles.mt4}`}
+    onClick={addExpense}
+  >
+    <FaPlus /> Hinzufügen
+  </button>
+</Modal>
+
 
       <Modal isOpen={showConfirmModal} onClose={() => setShowConfirmModal(false)} title="Bestätigen">
         <p>{confirmMessage}</p>
