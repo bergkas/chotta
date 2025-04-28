@@ -4,10 +4,11 @@
 .roomContainer {
   max-width: 480px;
   margin: 0 auto;
-  padding: 24px;
+  padding: 16px;
   font-family: "Montserrat", sans-serif;
   color: #333;
   background-color: #fff;
+
   border-radius: 12px;
 }
 
@@ -19,6 +20,8 @@
   margin-top: 0;
   margin-bottom: 8px;
 }
+
+
 
 /* Header */
 .headerContainer {
@@ -35,8 +38,9 @@
 .titleRow {
   display: flex;
   justify-content: flex-start;
+  gap: 4px;
   align-items: center;
-  gap: 8px;
+  margin-bottom: 16px;
 }
 
 .roomTitle {
@@ -49,7 +53,7 @@
   background: none;
   border: none;
   color: #444;
-  font-size: 1.2rem;
+  font-size: 1em;
   cursor: pointer;
   transition: color 0.2s;
 }
@@ -65,11 +69,12 @@
   flex-wrap: wrap;
   gap: 8px;
 }
+
 .chip {
   background: #e5e7eb;
-  padding: 8px 14px;
-  border-radius: 16px;
-  font-size: 0.9em;
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 0.85em;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -81,9 +86,10 @@
 
 .iconButton {
   background: none;
+  font-family: "Montserrat", sans-serif;
   border: none;
   color: #4f46e5;
-  font-size: 1.4em;
+  font-size: 1em;
   cursor: pointer;
   transition: color 0.2s;
 }
@@ -97,14 +103,17 @@
 .expensesSection {
   margin-bottom: 40px;
 }
+
 .sectionHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 12px;
 }
 .sectionHeader h2 {
-  font-size: 1.3em;
+  font-size: 1.2em;
   font-weight: 500;
+  margin-bottom: 24px;
 }
 
 .expenseCardSmall {
@@ -123,155 +132,361 @@
 .expenseHeader {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 2px;
 }
 .expenseHeader h3 {
   font-size: 1em;
   margin: 0;
+}
+.expenseHeader span {
+  font-weight: 600;
 }
 .flexSpacer {
   flex: 1;
 }
 
 .dateTime {
-  font-size: 0.8em;
+  font-size: 0.75em;
   color: #6b7280;
+  margin: 4px 0;
 }
+
+.paidBy {
+  font-size: 0.8em;
+  color: #4b5563;        /* etwas dezentere Schriftfarbe */
+  margin: 4px 0;         /* Abstand nach oben und unten */
+  font-family: "Montserrat", sans-serif;
+}
+.paidBy strong {
+  color: #333;           /* Name in normaler Textfarbe */
+}
+
 
 /* Share Chips */
 .shareChips {
+  font-size: 0.8em;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  font-size: 0.85em;
+  margin-top: 16px;
 }
 
-/* Transfers */
+/* Icons */
+.itemIcon {
+  margin-right: 8px;
+  font-size: 1.2em;
+  color: #4f46e5;
+}
+
+/* Delete button */
+.btnDelete {
+  background: none;
+  border: none;
+  color: #ef4444;
+  font-size: 0.8em;
+  cursor: pointer;
+  margin-left: 4px;
+  margin-top: 2px;
+  transition: color 0.2s;
+}
+.btnDelete:hover,
+.btnDelete:focus {
+  color: #dc2626;
+  outline: none;
+}
+
+/* Transfers in history */
 .transferCard {
   background: #ecfdf5;
   border: 1px solid #10b981;
   padding: 16px;
   border-radius: 8px;
   margin-bottom: 16px;
+  transition: background 0.2s;
+}
+.transferCard:hover {
+  background: #d1fae5;
+}
+.transferCard .expenseHeader {
+  display: flex;
+  align-items: center;
+}
+.transferDate {
+  font-size: 0.75em;
+  color: #6b7280;
+  margin-left: auto;
 }
 
-/* Buttons */
-.btnAdd, .btnConfirm {
-  background: #10b981;
-  color: white;
-  font-family: "Montserrat", sans-serif;
-  border: none;
+/* Optimized Debts */
+.optimizedSection {
+  margin-bottom: 24px;
+}
+.debtContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.debtItem {
+  background: #f9fafb;
+  padding: 16px;
+  margin-bottom: 16px;
   border-radius: 8px;
-  padding: 12px 20px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s, box-shadow 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.2s;
 }
-.btnAdd:hover, .btnConfirm:hover {
-  background: #059669;
+.debtItem:hover {
+  background: #eef1f6;
 }
-.btnConfirm {
-  background: #4f46e5;
+.debtIcon {
+  color: #4f46e5;
 }
-.btnConfirm:hover {
-  background: #4338ca;
+.noDebt {
+  font-style: italic;
+  color: #6b7280;
+}
+.noData {
+  font-style: italic;
+  color: #6b7280;
+  margin-bottom: 12px;
+}
+
+/* Confirmation Buttons */
+.confirmButtons {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 16px;
+}
+
+/* Loading */
+.loading {
+  text-align: center;
+  color: #6b7280;
+  padding: 32px 0;
 }
 
 /* Modals */
 .modalOverlay {
   position: fixed;
+  padding: 0 16px;
   inset: 0;
   background: rgba(0,0,0,0.5);
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
   z-index: 9999;
 }
-
 .modalContent {
   background: #fff;
+  border-radius: 12px;
+  margin: auto;
   width: 90%;
   max-width: 360px;
   padding: 24px;
-  border-radius: 12px;
   box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modalBody p {
   font-family: "Montserrat", sans-serif;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #333;
+  margin: 0;
+}
+
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.btnClose {
+  background: none;
+  border: none;
+  font-size: 1.2em;
+  color: #333;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.btnClose:hover,
+.btnClose:focus {
+  color: #555;
+  outline: none;
+}
+.modalBody {
+  margin-top: 8px;
+}
+
+.modalHeader h3 {
+  font-family: "Montserrat", sans-serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+  color: #333;
 }
 
 .modalInput {
-  width: 100%;
-  font-size: 1rem; /* sehr wichtig: mindestens 16px auf mobile */
-  padding: 12px;
+  width: 95%;
+  font-family: "Montserrat", sans-serif;
+  font-size: 1.2em;
+  padding: 10px;
   margin-bottom: 16px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  transition: border-color 0.2s;
 }
 .modalInput:focus {
   border-color: #4f46e5;
   outline: none;
 }
 
-.modalHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.modalHeader h3 {
-  font-size: 1.25rem;
-  margin: 0;
-}
-
-.btnClose {
-  background: none;
+/* Buttons & Inputs */
+.btnAdd {
+  background: #10b981;
+  color: #fff;
   border: none;
-  font-size: 1.5em;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 1em;
+  transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
   cursor: pointer;
-  color: #333;
 }
-.btnClose:hover {
-  color: #666;
+.btnAdd:hover,
+.btnAdd:focus {
+  background: #059669;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  outline: none;
 }
 
-/* Ablaufbox */
+.btnConfirm {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #4f46e5;
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+  cursor: pointer;
+}
+.btnConfirm:hover,
+.btnConfirm:focus {
+  background: #4338ca;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  outline: none;
+}
+.btnConfirm:active {
+  transform: scale(0.97);
+}
+
+/* Distribution Dynamic Fields */
+.optionGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-family: "Montserrat", sans-serif;
+}
+.optionLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.optionList {
+  margin-bottom: 6px;
+  margin-right: 10px;
+}
+.optionList select {
+  padding-right: 10px; /* verschiebt den Pfeil 10px vom rechten Rand weg */
+}
+.optionRow {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  margin-bottom: 8px;
+  font-family: "Montserrat", sans-serif;
+  font-size: 0.85em;
+}
+
+.optionRow > span:last-child {
+  margin-left: 8px;       /* Abstand zwischen Input und “%” bzw. “€” */
+}
+
+.inputSmall {
+  margin-left: auto;      /* schiebt Input(+Zeichen) nach ganz rechts */
+  font-size: 1.2em;
+  width: 60px;   
+  height: 16px;         /* fixe Breite – passe gern an */
+  text-align: right;      /* Zahl am rechten Rand */
+  padding: 8px;           /* zu .modalInput passend */
+}
+
+.mt4 {
+  margin-top: 16px;
+}
+
+/* Ablauf‐Info & Verlängerung */
 .expiryBox {
-  margin-top: 24px;
+  margin: 16px auto 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 8px;
   background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
   text-align: center;
+  font-size: 0.85rem;
+  color: #4b5563;
+  max-width: 480px;
 }
 .expiryInfo {
-  font-size: 0.9em;
-  color: #4b5563;
-}
-
-/* Loading */
-.loading {
-  text-align: center;
-  margin: 40px 0;
-  font-size: 1.1em;
+  margin-bottom: 12px;
+  font-size: 0.85rem;
   color: #6b7280;
+  line-height: 1.4;
+  font-family: "Montserrat", sans-serif;
 }
 
-/* Mobile Tweaks */
+.roomID {
+  font-size: 0.7rem;
+  color: #6b7280;
+  font-family: "Montserrat", sans-serif;
+}
+
 @media (max-width: 480px) {
-  .modalContent {
-    max-width: 90%;
-    padding: 20px;
+  .roomContainer {
+    padding: 12px;
   }
-
+  .headerContainer {
+    padding: 16px;
+    margin-bottom: 24px;
+  }
   .expenseCardSmall,
-  .transferCard {
-    padding: 14px;
+  .transferCard,
+  .debtItem {
+    padding: 12px;
+    margin-bottom: 12px;
   }
-
   .btnAdd,
   .btnConfirm {
-    width: 100%;
-    text-align: center;
-    font-size: 1rem;
+    padding: 8px 12px;
+    font-size: 0.95rem;
   }
 }
+
+
+
