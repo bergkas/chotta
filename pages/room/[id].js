@@ -10,7 +10,9 @@ import {
   FaArrowRight,
   FaReceipt,
   FaMoneyBillWave
-} from 'react-icons/fa';
+  } from 'react-icons/fa';
+import { FaMoneyBillTransfer } from 'react-icons/fa6';
+
 import styles from '../../styles/RoomPage.module.css';
 
 function Modal({ isOpen, onClose, title, children }) {
@@ -494,6 +496,9 @@ const renderOptimized = () => {
       <div className={styles.roomContainer}>
         {/* Header + Teilnehmer */}
         <div className={styles.headerContainer}>
+        <div className={styles.moneyIcon}>
+    	<FaMoneyBillTransfer />
+  		</div>
         <span> SchotterShare Raum: </span>
           <div className={styles.titleRow}>
           

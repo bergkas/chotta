@@ -2,7 +2,7 @@
 import { useRouter } from 'next/router';
 import { supabase } from '../lib/supabase';
 import { v4 as uuidv4 } from 'uuid';
-import { FaPlus } from 'react-icons/fa';
+import { FaPlus, FaMoneyBillTransfer } from 'react-icons/fa6';
 import styles from '../styles/HomePage.module.css';
 
 export default function Home() {
@@ -27,7 +27,12 @@ export default function Home() {
 
   return (
     <div className={styles.pageContainer}>
-      <h1 className={styles.title}>SchotterShare</h1>
+<div className={styles.titleBlock}>
+  <FaMoneyBillTransfer className={styles.iconLarge} />
+  <h1 className={styles.title}>SchotterShare</h1>
+</div>
+
+
       <p className={styles.subtitle}>
         Die einfachste Art, Gruppenausgaben zu verwalten.<br/>
         Ideal für Urlaub, WGs oder Events.
