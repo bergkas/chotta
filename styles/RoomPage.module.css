@@ -3,7 +3,7 @@
 /* Grundlayout */
 .roomContainer {
   max-width: 480px;
-  margin: 0 auto;
+  margin: 20px auto;
   padding: 16px;
   font-family: "Montserrat", sans-serif;
   color: #333;
@@ -23,19 +23,35 @@
 
 
 
-/* Styling für deinen Anker-Link */
-.anchorLink {
-  font-size: 0.9rem;
-  color: #fff!important;
-  background: transparent;
-  text-decoration: none;
-  border: none;
-  margin-top: 8px;
-  margin-left: -4px;
-  cursor: pointer;
-  transition: background 0.2s, color 0.2s;
+/* ---------------------------------- */
+/* Zeile: Gesamtausgaben ↔ Ankerlink  */
+/* ---------------------------------- */
+.summaryRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 16px 0px 0px 0px;           /* etwas Abstand nach oben/unten */
+  padding: 0 4px;           /* minimaler horizontaler Puffer */
 }
-.anchorLink:hover {
+
+.totalExpenses {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #fff;
+}
+
+.anchorLink {
+  background: none;
+  font-family: "Montserrat", sans-serif;
+  border: none;
+  color: #fff;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.anchorLink:hover,
+.anchorLink:focus {
+  color: #fff;
   text-decoration: underline;
 }
 
@@ -182,6 +198,8 @@
   gap: 2px;
 }
 .expenseHeader h3 {
+  flex-shrink: 1;
+  word-break: break-word;
   font-size: 1em;
   margin: 0;
 }
@@ -190,6 +208,11 @@
 }
 .flexSpacer {
   flex: 1;
+}
+
+.amount {
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .dateTime {
@@ -542,7 +565,7 @@
   border-top: 1px solid #d1d5db;
   text-align: center;
   font-size: 0.85rem;
-  color: #4b5563;
+  color: #fff;
   max-width: 480px;
 }
 .expiryInfo {
@@ -598,6 +621,30 @@
   margin-left: 0;
   align-self: flex-start;
 }
+}
+
+
+.footerLogo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #000;
+  margin-top: 32px;
+  cursor: default; /* sieht aus wie Button, aber ohne Funktion */
+}
+
+
+.footerImg {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.footerText {
+  font-size: 0.85rem;
+  color: #6b7280;
+  font-weight: 500;
+  color: #4338ca;
 }
 
 

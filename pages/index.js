@@ -1,53 +1,149 @@
 // pages/index.js
+import { useState } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../lib/supabase';
 import { v4 as uuidv4 } from 'uuid';
-import { FaPlus, FaMoneyBillTransfer } from 'react-icons/fa6';
+import { FaPlus, FaMoneyBillWave, FaTimes, FaCheck} from 'react-icons/fa';
+import { FaMoneyBillTransfer } from 'react-icons/fa6';
 import styles from '../styles/HomePage.module.css';
+import Image from 'next/image';
 
 export default function Home() {
   const router = useRouter();
 
-  async function createRoom() {
-    const id = uuidv4();
-    const expiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+  // Modal-States
+  const [showModal, setShowModal] = useState(false);
+  const [groupName, setGroupName] = useState('');
+  const [participantName, setParticipantName] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
-    const { error } = await supabase
-      .from('rooms')
-      .insert([{ id, expires_at: expiresAt.toISOString() }]);
-
-    if (error) {
-      console.error('Fehler beim Erstellen des Raums:', error);
-      alert('Fehler beim Erstellen des Raums');
+  // Handler zum Erstellen
+  async function handleCreateRoom() {
+    if (!groupName.trim() || !participantName.trim()) {
+      setErrorMessage('Bitte Raumname und Teilnehmer eingeben.');
       return;
     }
 
+    const id = uuidv4();
+    const expiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+
+    // Raum anlegen
+    const { error: roomError } = await supabase
+      .from('rooms')
+      .insert([{ id, name: groupName, expires_at: expiresAt.toISOString() }]);
+    if (roomError) {
+      setErrorMessage('Fehler beim Erstellen des Raums.');
+      return;
+    }
+
+    // Teilnehmer anlegen
+    const { error: partError } = await supabase
+      .from('participants')
+      .insert([{ room_id: id, name: participantName }]);
+    if (partError) {
+      setErrorMessage('Fehler beim Hinzufügen des Teilnehmers.');
+      return;
+    }
+
+    // Erfolgreich → weiterleiten
     router.push(`/room/${id}`);
   }
 
   return (
-    <div className={styles.pageContainer}>
-<div className={styles.titleBlock}>
-  <FaMoneyBillTransfer className={styles.iconLarge} />
-  <h1 className={styles.title}>SchotterShare</h1>
-</div>
-
-
+   <div className={styles.wrapper}>
+      <div className={styles.pageContainer}>     
+	 <div className={styles.headerIcon}>
+        <FaMoneyBillTransfer size={42} />
+      </div>
+      <h1 className={styles.title}>SchotterShare</h1>
       <p className={styles.subtitle}>
-        Die einfachste Art, Gruppenausgaben zu verwalten.<br/>
+        Die einfachste Art, Gruppenausgaben zu verwalten.<br />
         Ideal für Urlaub, WGs oder Events.
       </p>
 
-      <button onClick={createRoom} className={styles.createButton}>
+      <button
+        className={styles.createButton}
+        onClick={() => {
+          setErrorMessage('');
+          setShowModal(true);
+        }}
+      >
         <FaPlus /> Neuen Raum erstellen
       </button>
-      <div className={styles.infoBox}>Merke dir, nachdem du einen Raum erstellt hast, unbedingt die URL - über sie können du und deine Freunde auf den Raum zugreifen </div>
-
+      
       <div className={styles.infoBox}>
-      	➔ Ohne Registrierung und Anmeldung<br/>
-        ➔ Räume sind 14 Tagen verfügbar.<br/>
-        ➔ Verlängerung jederzeit möglich.
+		<b>Merke dir</b> nach Erstellen des Raumes <b>unbedingt die URL</b> - damit können du und deine Freunde auf den Raum zugreifen.
       </div>
+
+	<div className={styles.textBox}>
+  	<p>
+    <FaCheck className={styles.checkIcon} /> Ohne Anmeldung
+  	</p>
+  	<p>
+  	<FaCheck className={styles.checkIcon} /> Kostenlos
+  	</p>
+  	<p>
+  	<FaCheck className={styles.checkIcon} /> Räume 14 Tage gültig & verlängerbar
+	</p>
+	</div>
+
+
+      {showModal && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <div className={styles.modalHeader}>
+              <h3>Raum erstellen</h3>
+              <button
+                className={styles.btnClose}
+                onClick={() => setShowModal(false)}
+              >
+                <FaTimes />
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              {errorMessage && (
+                <div className={styles.errorBox}>{errorMessage}</div>
+              )}
+              <input
+                className={styles.modalInput}
+                type="text"
+                placeholder="Raumname (max. 30 Zeichen)"
+                value={groupName}
+                onChange={(e) => setGroupName(e.target.value)}
+                maxLength={30}
+              />
+              <input
+                className={styles.modalInput}
+                type="text"
+                placeholder="Dein Name (max. 20 Zeichen)"
+                value={participantName}
+                onChange={(e) => setParticipantName(e.target.value)}
+                maxLength={20}
+              />
+              <button
+                className={styles.btnAdd}
+                onClick={handleCreateRoom}
+              >
+                <FaPlus /> Raum erstellen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+          <div className={styles.footerLogo}>
+  <Image
+    src="/logozf.svg"
+    alt="Zebrafrog Logo"
+    width={32}
+    height={32}
+  />
+  <span className={styles.footerText}>2025 Zebrafrog</span>
+</div>
     </div>
+    
+
+</div>
+
+
   );
 }

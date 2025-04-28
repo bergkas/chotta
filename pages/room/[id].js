@@ -14,6 +14,8 @@ import {
 import { FaMoneyBillTransfer } from 'react-icons/fa6';
 
 import styles from '../../styles/RoomPage.module.css';
+import Image from 'next/image';
+
 
 function Modal({ isOpen, onClose, title, children }) {
   if (!isOpen) return null;
@@ -126,6 +128,10 @@ async function fetchRoomName() {
     new Date(dt).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' });
   const findName     = (pid) =>
     participants.find((p) => p.id === pid)?.name || '–';
+  const totalExpenses = expenses.reduce(
+  (sum, e) => sum + parseFloat(e.amount),
+  	0
+  );
 
   // --- Dialog Starters ---
   const openConfirm = (msg, action) => {
@@ -531,15 +537,18 @@ const renderOptimized = () => {
   </button>
 </div>
 
-<div style={{ textAlign: 'left' }}>
+<div className={styles.summaryRow}>
+  <span className={styles.totalExpenses}>
+    Gesamtausgaben: {formatAmount(totalExpenses)} €
+  </span>
   <button
     className={styles.anchorLink}
     onClick={() => {
-      const el = document.getElementById('optimized');
-      if (el) el.scrollIntoView({ behavior: 'smooth' });
+      const el = document.getElementById('optimized')
+      if (el) el.scrollIntoView({ behavior: 'smooth' })
     }}
   >
-    Rückzahlungen&nbsp;↓
+    Rückzahlungen ↓
   </button>
 </div>
 
@@ -571,7 +580,7 @@ const renderOptimized = () => {
                     <FaReceipt className={styles.itemIcon} />
                     <h3>{item.data.title}</h3>
                     <span className={styles.flexSpacer} />
-                    <span>{formatAmount(item.data.amount)} €</span>
+                    <span>{formatAmount(item.data.amount)}&nbsp;€</span>
                     <button className={styles.btnDelete} onClick={() => deleteExpense(item.data.id)}>
                       <FaTrashAlt />
                     </button>
@@ -635,9 +644,20 @@ const renderOptimized = () => {
               </button>
             )}
             <div className={styles.roomID}>Raum-ID: {id}</div>
+            
+                      <div className={styles.footerLogo}>
+  				<Image
+   				 src="/logozf.svg"
+   				 alt="Zebrafrog Logo"
+   				 width={32}
+   				 height={32}
+  				/>
+ 				 <span className={styles.footerText}>2025 Zebrafrog</span>
+				</div>
           </div>
           
         )}
+
 
       {/* Modals */}
       <Modal isOpen={showParticipantModal} onClose={() => setShowParticipantModal(false)} title="Teilnehmer hinzufügen">
