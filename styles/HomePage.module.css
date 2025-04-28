@@ -3,8 +3,8 @@
 
 /* -------------- WRAPPER für Hintergrund -------------- */
 .wrapper {
-  min-height: 60vh;                           /* komplette Höhe */
-  padding: 40px 16px;                          /* oben/unten Platz */
+  min-height: 50vh;                           /* komplette Höhe */
+  padding: 24px 16px;                          /* oben/unten Platz */
   background: linear-gradient(
     135deg,
     #4f46e5 0%, 
@@ -18,7 +18,7 @@
 /* Haupt-Container */
 .pageContainer {
   max-width: 480px;
-  margin: 40px auto;
+  margin: 24px auto;
   padding: 24px;
   background-color: #fff;
   border-radius: 12px;
@@ -242,7 +242,7 @@
 /* Mobile Optimierungen */
 @media (max-width: 480px) {
   .pageContainer {
-    margin: 24px auto;
+    margin: 16px auto;
     padding: 16px;
   }
   .title {
@@ -261,7 +261,7 @@
   }
   .modalInput {
     padding: 10px;
-    font-size: 0.95rem;
+    font-size: 1.1rem;
   }
   .btnAdd {
     width: 100%;
