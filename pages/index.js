@@ -57,8 +57,8 @@ export default function Home() {
       </div>
       <h1 className={styles.title}>SchotterShare</h1>
       <p className={styles.subtitle}>
-        Die einfachste Art, Gruppenausgaben zu verwalten.<br />
-        Ideal für Urlaub, WGs oder Events.
+        Verwaltet eure Ausgaben zwischen Freunden  & Familie<br />
+        Optimiert eure Rückzahlungen über den kürzesten Weg.
       </p>
 
       <button
@@ -77,13 +77,10 @@ export default function Home() {
 
 	<div className={styles.textBox}>
   	<p>
-    <FaCheck className={styles.checkIcon} /> Ohne Anmeldung
+    <FaCheck className={styles.checkIcon} /> Kostenlos & ohne Anmeldung
   	</p>
   	<p>
-  	<FaCheck className={styles.checkIcon} /> Kostenlos
-  	</p>
-  	<p>
-  	<FaCheck className={styles.checkIcon} /> Räume 14 Tage gültig & verlängerbar
+  	<FaCheck className={styles.checkIcon} /> Beliebig verlängerbar
 	</p>
 	</div>
 
