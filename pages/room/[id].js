@@ -153,8 +153,8 @@ async function fetchRoomName() {
   // --- Actions: Participant ---
   async function addParticipant() {
     if (!newName.trim()) return;
-    if (newName.length > 20) {
-      openInfo('Namen können max. 20 Zeichen lang sein.');
+    if (newName.length > 14) {
+      openInfo('Namen können max. 14 Zeichen lang sein.');
       return;
     }
     await supabase.from('participants').insert([{ room_id: id, name: newName }]);
@@ -169,7 +169,7 @@ async function fetchRoomName() {
     const hasTransfer = transfers.some((t) => t.from_id === p.id || t.to_id === p.id);
     if (hasPaid || hasOwed || hasTransfer) {
   openInfo(
-    'Person kann nicht gelöscht werden. Bitte zuerst Ausgaben/Überweisungen löschen.'
+    'Person kann nicht gelöscht werden. Bitte zuerst Ausgaben/Überweisungen der Person löschen.'
   );
 } else {
   setCurrentPart(p);
@@ -368,23 +368,28 @@ const renderOptimized = () => {
   }
 
   return (
-    <div className={styles.debtContainer}>
-      {list.map((e, i) => (
-        <div key={i} className={styles.debtItem}>
-          <FaArrowRight className={styles.debtIcon} />
-          <span>
-            <strong>{findName(e.from)}</strong> an{' '}
-            <strong>{findName(e.to)}</strong>: {formatAmount(e.amount)} €
-          </span>
-          <button
-            className={styles.btnConfirm}
-            onClick={() => completeTransfer(e.from, e.to, e.amount)}
-          >
-            <FaMoneyBillWave /> Begleichen
-          </button>
-        </div>
-      ))}
+<div className={styles.debtContainer}>
+  {list.map((e, i) => (
+    <div key={i} className={styles.debtItem}>
+      {/* Zeile mit Icon + Details */}
+      <div className={styles.debtRow}>
+        <FaArrowRight className={styles.debtIcon} />
+        <span>
+          <strong>{findName(e.from)}</strong> an{' '}
+          <strong>{findName(e.to)}</strong>: {formatAmount(e.amount)} €
+        </span>
+      </div>
+      {/* Button ganz unten */}
+      <button
+        className={styles.btnConfirm}
+        onClick={() => completeTransfer(e.from, e.to, e.amount)}
+      >
+        <FaMoneyBillWave /> Begleichen
+      </button>
     </div>
+  ))}
+</div>
+
   );
 };
 
@@ -534,7 +539,7 @@ const renderOptimized = () => {
           className={styles.modalInput}
           placeholder="Name"
           value={newName}
-          maxLength={20}
+          maxLength={14}
           onChange={(e) => setNewName(e.target.value)}
         />
         <button className={styles.btnAdd} onClick={addParticipant}>
