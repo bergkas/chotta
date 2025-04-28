@@ -6,7 +6,7 @@ import {
   FaTrashAlt,
   FaPlus,
   FaTimes,
-  FaEdit,
+  FaPen,
   FaArrowRight,
   FaReceipt,
   FaMoneyBillWave
@@ -53,6 +53,7 @@ export default function Room() {
 
   // modal flags
   const [showParticipantModal, setShowParticipantModal] = useState(false);
+  const [showManageModal, setShowManageModal]       	= useState(false);
   const [showExpenseModal, setShowExpenseModal]         = useState(false);
   const [showConfirmModal, setShowConfirmModal]         = useState(false);
   const [showPromptModal, setShowPromptModal]           = useState(false);
@@ -67,6 +68,7 @@ export default function Room() {
   const [promptValue, setPromptValue]       = useState('');
   const [promptAction, setPromptAction]     = useState(() => {});
   const [infoMessage, setInfoMessage]       = useState('');
+  const [manageNames, setManageNames]       = useState({});
 
   // for delete/rename flows
   const [currentPart, setCurrentPart]       = useState(null);
@@ -151,17 +153,38 @@ async function fetchRoomName() {
   };
 
   // --- Actions: Participant ---
-  async function addParticipant() {
-    if (!newName.trim()) return;
-    if (newName.length > 14) {
-      openInfo('Namen können max. 14 Zeichen lang sein.');
-      return;
-    }
-    await supabase.from('participants').insert([{ room_id: id, name: newName }]);
-    setNewName('');
-    fetchParticipants();
-    setShowParticipantModal(false);
+async function addParticipant() {
+  if (!newName.trim()) return;
+  if (newName.length > 14) {
+    openInfo('Namen können max. 14 Zeichen lang sein.');
+    return;
   }
+
+  // 1) Einfügen und das neue Objekt zurückholen
+  const { data: newPart, error } = await supabase
+    .from('participants')
+    .insert([{ room_id: id, name: newName }])
+    .select()       // <— hier die neue Zeile zurückfordern
+    .single();      // <— single() liefert ein Objekt statt Array
+
+  if (error) {
+    openInfo('Fehler beim Hinzufügen.');
+    return;
+  }
+
+  // 2) Lokales State-Update für Teilnehmer-Liste
+  setParticipants((prev) => [...prev, newPart]);
+
+  // 3) Direkt in manageNames aufnehmen, damit das Input sofort da ist
+  setManageNames((prev) => ({
+    ...prev,
+    [newPart.id]: newPart.name
+  }));
+
+  // 4) Aufräumen
+  setNewName('');
+}
+
 
   const handleDeleteClick = (p) => {
     const hasPaid     = expenses.some((e) => e.paid_by === p.id);
@@ -418,8 +441,10 @@ const renderOptimized = () => {
       <div className={styles.roomContainer}>
         {/* Header + Teilnehmer */}
         <div className={styles.headerContainer}>
+        <span> SchotterShare Raum: </span>
           <div className={styles.titleRow}>
-            <h1 className={styles.roomTitle}>Raum: {roomName}</h1>
+          
+            <h1 className={styles.roomTitle}>{roomName}</h1>
             
             <button className={styles.btnEdit} onClick={() => openPrompt('Neuer Raumname:', roomName, async (v) => {
               if (!v) return;
@@ -427,26 +452,46 @@ const renderOptimized = () => {
               if (!error) setRoomName(v);
               else openInfo('Fehler beim Ändern des Raumnamens.');
             })}>
-              <FaEdit />
+              <FaPen />
             </button>
           </div>
-          <div className={styles.participantChips}>
-            {participants.map((p) => (
-              <div key={p.id} className={styles.chip}>
-                {p.name}
-                <button className={styles.btnEdit} onClick={() => handleRenameClick(p)}>
-                  <FaEdit />
-                </button>
-                <button className={styles.btnDelete} onClick={() => handleDeleteClick(p)}>
-                  <FaTrashAlt />
-                </button>
-              </div>
-            ))}
-            <button className={styles.iconButton} onClick={() => setShowParticipantModal(true)}>
-              <FaPlus />
-            </button>
-          </div>
+<div className={styles.participantChips}>
+  {participants.map(p => (
+    <span key={p.id} className={styles.chip}>{p.name}</span>
+  ))}
+  {/* Manage-All */}
+  <button
+    className={styles.iconButton}
+    onClick={() => {
+      const initial = {};
+      participants.forEach(p => { initial[p.id] = p.name; });
+      setManageNames(initial);
+      setShowManageModal(true);
+    }}
+  >
+    <FaPen />
+  </button>
+</div>
+
+<div style={{ textAlign: 'left' }}>
+  <button
+    className={styles.anchorLink}
+    onClick={() => {
+      const el = document.getElementById('optimized');
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }}
+  >
+    Rückzahlungen&nbsp;↓
+  </button>
+</div>
+
+
         </div>
+        
+{/* Direkt unter deinem Header o. Ä. */}
+
+
+
 
 
 
@@ -492,7 +537,7 @@ const renderOptimized = () => {
                   <div className={styles.expenseHeader}>
                     <FaMoneyBillWave className={styles.itemIcon} />
                     <h3>
-                      Überweisung: {findName(item.data.from_id)} → {findName(item.data.to_id)}
+                      Überweisung
                     </h3>
                     <span className={styles.flexSpacer} />
                     <span>{formatAmount(item.data.amount)} €</span>
@@ -501,6 +546,9 @@ const renderOptimized = () => {
                     </button>
                   </div>
                   <div className={styles.dateTime}>{formatDate(item.data.date)}</div>
+                  <div className={styles.paidBy}>
+	       		  <strong>{findName(item.data.from_id)} → {findName(item.data.to_id)}</strong>
+      			 </div>
                 </div>
               )
             )
@@ -508,7 +556,7 @@ const renderOptimized = () => {
         </section>
 
         {/* Optimierte Rückzahlungen */}
-        <section className={styles.optimizedSection}>
+        <section id="optimized" className={styles.optimizedSection}>
           <div className={styles.sectionHeader}>
             <h2>Optimierte Rückzahlungen</h2>
           </div>
@@ -546,6 +594,85 @@ const renderOptimized = () => {
           <FaPlus /> Hinzufügen
         </button>
       </Modal>
+      
+      
+     <Modal
+  isOpen={showManageModal}
+  onClose={() => setShowManageModal(false)}
+  title="Teilnehmer verwalten"
+>
+  {/* 2a) Add-Feld direkt hier */}
+  <div className={`${styles.optionRow} ${styles.addRow}`}>
+
+    <input
+      className={styles.modalInput}
+      placeholder="Neuen Teilnehmer hinzufügen"
+      value={newName}
+      maxLength={14}
+      onChange={e => setNewName(e.target.value)}
+    />
+    <button
+      className={styles.btnAdd}
+      onClick={() => {
+        addParticipant();
+        // gleich auch in manageNames aufnehmen
+        setManageNames(m => ({ ...m, [participants.length ? participants[participants.length-1].id+1 : 0]: newName }));
+      }}
+    >
+      <FaPlus />
+    </button>
+  </div>
+
+  {/* 2b) Liste der Teilnehmer bearbeiten/löschen */}
+  <div className={styles.optionList}>
+    {participants.map((p) => (
+      <div key={p.id} className={styles.optionRow}>
+        {/* Umbenennen */}
+        <input
+          className={styles.modalInput}
+          value={manageNames[p.id] || ''}
+          onChange={e =>
+            setManageNames(prev => ({ ...prev, [p.id]: e.target.value }))
+          }
+        />
+
+        {/* Lösch-Button führt die gleichen Checks wie früher aus */}
+        <button
+          className={styles.btnDelete}
+          onClick={() => handleDeleteClick(p)}
+        >
+          <FaTrashAlt />
+        </button>
+      </div>
+    ))}
+  </div>
+
+  {/* 2c) Speichern aller Umbenennungen */}
+  <div style={{ textAlign: 'right', marginTop: '16px' }}>
+    <button
+      className={styles.btnAdd}
+      onClick={async () => {
+        await Promise.all(
+          Object.entries(manageNames).map(async ([pid, name]) => {
+            const original = participants.find(p => p.id === pid)?.name;
+            if (name && original && name !== original) {
+              await supabase
+                .from('participants')
+                .update({ name })
+                .eq('id', pid);
+            }
+          })
+        );
+        fetchParticipants();
+        setShowManageModal(false);
+      }}
+    >
+      Speichern
+    </button>
+  </div>
+</Modal>
+
+
 
       <Modal isOpen={showExpenseModal} onClose={() => setShowExpenseModal(false)} title="Neue Ausgabe">
 <input

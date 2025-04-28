@@ -23,6 +23,25 @@
 
 
 
+/* Styling für deinen Anker-Link */
+.anchorLink {
+  font-size: 0.9rem;
+  color: #fff!important;
+  background: transparent;
+  text-decoration: none;
+  border: none;
+  margin-top: 8px;
+  margin-left: -4px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.anchorLink:hover {
+  text-decoration: underline;
+}
+
+
+
+
 /* Header */
 .headerContainer {
   background: linear-gradient(135deg, #4f46e5 0%, #3227B0 100%);  padding: 20px;
@@ -30,18 +49,19 @@
   border-radius: 12px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 6px;
   margin-bottom: 32px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 
 .headerContainer button {
   color: #fff;
+  font-size: 0.8em;
 }
 
 .headerContainer .participantChips .chip {
   background: transparent;
-  padding: 3px 5px 3px 15px;
+  padding: 3px 10px 3px 10px;
   border: 1.6px solid #fff;
   color: #fff;
 }
@@ -407,6 +427,27 @@
   transform: scale(0.97);
 }
 
+/* Speziell für die Add-Teilnehmer-Zeile im Manage-Modal */
+.addRow {
+  align-items: top;             /* Input & Button vertikal zentrieren */
+  padding-bottom: 8px;            /* etwas Innenabstand unten */
+  margin-bottom: 16px !important;  /* Trenner-Abstand */
+  border-bottom: 1px solid #e5e7eb;/* feine Linie als Abgrenzung */
+  gap: 12px;
+}
+
+/* Falls dein .optionRow noch kein align-items hat, stelle es hier sicher */
+.addRow,
+.addRow > * {
+  display: flex;
+  align-items: center;
+}
+
+.addRow button {
+	margin-bottom: 1.2em;
+}
+
+
 /* Distribution Dynamic Fields */
 .optionGrid {
   display: grid;
@@ -461,9 +502,7 @@
   justify-content: center;
   align-items: center;
   padding: 8px;
-  background: #f9fafb;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
+  border-top: 1px solid #d1d5db;
   text-align: center;
   font-size: 0.85rem;
   color: #4b5563;
