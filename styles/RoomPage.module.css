@@ -1,0 +1,463 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap');
+
+/* Grundlayout */
+.roomContainer {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 24px;
+  font-family: "Montserrat", sans-serif;
+  color: #333;
+  background-color: #fff;
+
+  border-radius: 12px;
+}
+
+.h2 {
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+.h3 {
+  margin-top: 0;
+  margin-bottom: 8px;
+}
+
+
+
+/* Header */
+.headerContainer {
+  background: #f3f4f6;
+  padding: 20px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 32px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.titleRow {
+  display: flex;
+  justify-content: flex-start;
+  gap: 4px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.roomTitle {
+  font-size: 1.5em;
+  font-weight: 600;
+  margin: 0;
+}
+
+.btnEdit {
+  background: none;
+  border: none;
+  color: #444;
+  font-size: 1em;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.btnEdit:hover,
+.btnEdit:focus {
+  color: #4338ca;
+  outline: none;
+}
+
+/* Participant Chips */
+.participantChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  background: #e5e7eb;
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 0.85em;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.2s;
+}
+.chip:hover {
+  background: #d1d5db;
+}
+
+.iconButton {
+  background: none;
+  font-family: "Montserrat", sans-serif;
+  border: none;
+  color: #4f46e5;
+  font-size: 1em;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.iconButton:hover,
+.iconButton:focus {
+  color: #4338ca;
+  outline: none;
+}
+
+/* Verlauf / Expenses List */
+.expensesSection {
+  margin-bottom: 40px;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.sectionHeader h2 {
+  font-size: 1.2em;
+  font-weight: 500;
+  margin-bottom: 24px;
+}
+
+.expenseCardSmall {
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  transition: transform 0.1s, box-shadow 0.2s;
+}
+.expenseCardSmall:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.expenseHeader {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.expenseHeader h3 {
+  font-size: 1em;
+  margin: 0;
+}
+.expenseHeader span {
+  font-weight: 600;
+}
+.flexSpacer {
+  flex: 1;
+}
+
+.dateTime {
+  font-size: 0.75em;
+  color: #6b7280;
+  margin: 4px 0;
+}
+
+.paidBy {
+  font-size: 0.8em;
+  color: #4b5563;        /* etwas dezentere Schriftfarbe */
+  margin: 4px 0;         /* Abstand nach oben und unten */
+  font-family: "Montserrat", sans-serif;
+}
+.paidBy strong {
+  color: #333;           /* Name in normaler Textfarbe */
+}
+
+
+/* Share Chips */
+.shareChips {
+  font-size: 0.8em;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 16px;
+}
+
+/* Icons */
+.itemIcon {
+  margin-right: 8px;
+  font-size: 1.2em;
+  color: #4f46e5;
+}
+
+/* Delete button */
+.btnDelete {
+  background: none;
+  border: none;
+  color: #ef4444;
+  font-size: 0.8em;
+  cursor: pointer;
+  margin-left: 4px;
+  margin-top: 2px;
+  transition: color 0.2s;
+}
+.btnDelete:hover,
+.btnDelete:focus {
+  color: #dc2626;
+  outline: none;
+}
+
+/* Transfers in history */
+.transferCard {
+  background: #ecfdf5;
+  border: 1px solid #10b981;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  transition: background 0.2s;
+}
+.transferCard:hover {
+  background: #d1fae5;
+}
+.transferCard .expenseHeader {
+  display: flex;
+  align-items: center;
+}
+.transferDate {
+  font-size: 0.75em;
+  color: #6b7280;
+  margin-left: auto;
+}
+
+/* Optimized Debts */
+.optimizedSection {
+  margin-bottom: 24px;
+}
+.debtContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.debtItem {
+  background: #f9fafb;
+  padding: 16px;
+  margin-bottom: 16px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.2s;
+}
+.debtItem:hover {
+  background: #eef1f6;
+}
+.debtIcon {
+  color: #4f46e5;
+}
+.noDebt {
+  font-style: italic;
+  color: #6b7280;
+}
+.noData {
+  font-style: italic;
+  color: #6b7280;
+  margin-bottom: 12px;
+}
+
+/* Confirmation Buttons */
+.confirmButtons {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 16px;
+}
+
+/* Loading */
+.loading {
+  text-align: center;
+  color: #6b7280;
+  padding: 32px 0;
+}
+
+/* Modals */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+.modalContent {
+  background: #fff;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 360px;
+  padding: 24px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modalBody p {
+  font-family: "Montserrat", sans-serif;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #333;
+  margin: 0;
+}
+
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.btnClose {
+  background: none;
+  border: none;
+  font-size: 1.2em;
+  color: #333;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.btnClose:hover,
+.btnClose:focus {
+  color: #555;
+  outline: none;
+}
+.modalBody {
+  margin-top: 8px;
+}
+
+.modalHeader h3 {
+  font-family: "Montserrat", sans-serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+  color: #333;
+}
+
+.modalInput {
+  width: 95%;
+  font-family: "Montserrat", sans-serif;
+  padding: 10px;
+  margin-bottom: 16px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  transition: border-color 0.2s;
+}
+.modalInput:focus {
+  border-color: #4f46e5;
+  outline: none;
+}
+
+/* Buttons & Inputs */
+.btnAdd {
+  background: #10b981;
+  color: #fff;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 1em;
+  transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+  cursor: pointer;
+}
+.btnAdd:hover,
+.btnAdd:focus {
+  background: #059669;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  outline: none;
+}
+
+.btnConfirm {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #4f46e5;
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+  cursor: pointer;
+}
+.btnConfirm:hover,
+.btnConfirm:focus {
+  background: #4338ca;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  outline: none;
+}
+.btnConfirm:active {
+  transform: scale(0.97);
+}
+
+/* Distribution Dynamic Fields */
+.optionGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-family: "Montserrat", sans-serif;
+}
+.optionLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.optionList {
+  margin-bottom: 6px;
+  margin-right: 10px;
+}
+.optionList select {
+  padding-right: 10px; /* verschiebt den Pfeil 10px vom rechten Rand weg */
+}
+.optionRow {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  margin-bottom: 8px;
+  font-family: "Montserrat", sans-serif;
+  font-size: 0.85em;
+}
+
+.optionRow > span:last-child {
+  margin-left: 8px;       /* Abstand zwischen Input und “%” bzw. “€” */
+}
+
+.inputSmall {
+  margin-left: auto;      /* schiebt Input(+Zeichen) nach ganz rechts */
+  width: 60px;   
+  height: 16px;         /* fixe Breite – passe gern an */
+  text-align: right;      /* Zahl am rechten Rand */
+  padding: 8px;           /* zu .modalInput passend */
+}
+
+.mt4 {
+  margin-top: 16px;
+}
+
+/* Ablauf‐Info & Verlängerung */
+.expiryBox {
+  margin: 16px auto 0;
+  display: flex column;
+  justify-content: center;
+  align-items: center;
+  padding: 8px;
+  background: #f9fafb;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 0.85rem;
+  color: #4b5563;
+  max-width: 480px;
+}
+.expiryInfo {
+  margin-bottom: 12px;
+  font-size: 0.85rem;
+  color: #6b7280;
+  line-height: 1.4;
+  font-family: "Montserrat", sans-serif;
+}
+
+.roomID {
+  font-size: 0.7rem;
+  color: #6b7280;
+  font-family: "Montserrat", sans-serif;
+}
