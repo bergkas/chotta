@@ -35,8 +35,7 @@
 }
 
 .totalExpenses {
-  font-size: 0.8rem;
-  font-weight: 500;
+  font-size: 0.9rem;
   color: #fff;
 }
 
@@ -44,6 +43,7 @@
   background: none;
   font-family: "Montserrat", sans-serif;
   border: none;
+  padding: 0px;
   color: #fff;
   font-size: 0.9rem;
   cursor: pointer;
@@ -66,15 +66,12 @@
   border-radius: 12px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 12px;
   margin-bottom: 8px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 
-.headerContainer button {
-  color: #fff;
-  font-size: 0.8em;
-}
+
 
 .headerContainer .participantChips .chip {
   background: transparent;
@@ -86,9 +83,11 @@
 .titleRow {
   display: flex;
   justify-content: flex-start;
-  gap: 4px;
-  align-items: center;
-  margin-bottom: 16px;
+  gap: 2px;
+  align-items: top;
+  margin-bottom: 36px;
+  max-width: 66%;
+
 }
 
 .titleRow h1,
@@ -100,23 +99,24 @@
   font-size: 1.5em;
   font-weight: 600;
   margin: 0;
+  word-break: break-all;
 }
 
-.moneyIcon {
+.logo {
   position: absolute;
-  top: 6px;
-  right: 12px;
-  font-size: 2.5rem;
-  color: #ffffff;
+  top: -12px;
+  right: 10px;
   pointer-events: none;
+  opacity: 0.75;
 }
 
 
 .btnEdit {
   background: none;
   border: none;
-  color: #444;
-  font-size: 1em;
+  color: #fff;
+  margin-top: 3px;
+  font-size: 0.5em!important;
   cursor: pointer;
   transition: color 0.2s;
 }
@@ -150,8 +150,12 @@
 .iconButton {
   background: none;
   font-family: "Montserrat", sans-serif;
-  border: none;
-  color: #4f46e5;
+  border: 1.6px solid;
+  border-radius: 12px;
+  padding: 6px;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
   font-size: 1em;
   cursor: pointer;
   transition: color 0.2s;
@@ -175,8 +179,11 @@
 }
 .sectionHeader h2 {
   font-size: 1.2em;
-  font-weight: 500;
+  font-weight: 700;
   margin-bottom: 24px;
+  text-decoration: underline;
+  text-decoration-color: #4f46e5;
+  text-decoration-thickness: 0.1em;
 }
 
 .expenseCardSmall {
@@ -506,12 +513,13 @@
   background: transparent;
   color: #777;
   border: none;
+  border-radius: 12px;
+  gap: 4px;
   display: flex;
   align-items: center;
-  gap: 8px;
   font-size: 0.9em;
   cursor: pointer;
-  margin-bottom: 16px;
+  margin-bottom: 32px;
   }
 
 /* Speziell für die Add-Teilnehmer-Zeile im Manage-Modal */

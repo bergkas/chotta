@@ -18,8 +18,8 @@
 /* Haupt-Container */
 .pageContainer {
   max-width: 480px;
-  margin: 24px auto;
-  padding: 24px;
+  margin: 16px auto;
+  padding: 16px;
   background-color: #fff;
   border-radius: 12px;
   font-family: 'Montserrat', sans-serif;
@@ -30,16 +30,10 @@
 }
 
 /* Icon-Header */
-.headerIcon {
-  background: radial-gradient(circle at center, #4f46e5 0%, #4338ca 100%);
-  width: 72px;
-  height: 72px;
-  margin: 0 auto 16px;
-  border-radius: 50%;
+.logo {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
 }
 
 /* Titel & Subtitel */
@@ -47,10 +41,11 @@
   font-size: 2rem;
   font-weight: 600;
   color: #4f46e5;
-  margin: 0 0 8px;
+
 }
 .subtitle {
-  font-size: 1rem;
+  font-size: 1em!important;
+  font-weight: 600;
   color: #6b7280;
   margin: 0 0 32px;
   line-height: 1.4;
@@ -117,11 +112,13 @@
 }
 
 .checkIcon {
+  height: 16px;
+  width: 16px;
   margin-right: 6px;    /* Abstand Icon ↔ Text */
   vertical-align: middle;
 }
 .textBox p {
-  margin: 4px 0;
+  margin: 4px;
   display: flex;
   align-items: center;
 }

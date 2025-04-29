@@ -593,26 +593,35 @@ const renderOptimized = () => {
       <div className={styles.roomContainer}>
         {/* Header + Teilnehmer */}
         <div className={styles.headerContainer}>
-        <div className={styles.moneyIcon}>
-    	<FaMoneyBillTransfer />
+        <div className={styles.logo}>
+    	  <Image
+    src="/chotty_logo_full_white.svg"
+    alt="Chotty Logo"
+    width={96}
+    height={64}
+  />
   		</div>
-        <span> SchotterShare Raum: </span>
           <div className={styles.titleRow}>
+
           
-            <h1 className={styles.roomTitle}>{roomName}</h1>
-            
-            <button className={styles.btnEdit} onClick={() => openPrompt('Neuer Raumname:', roomName, async (v) => {
+            <h1 className={styles.roomTitle}>{roomName}<button className={styles.btnEdit} onClick={() => openPrompt('Neuer Raumname:', roomName, async (v) => {
               if (!v) return;
               const { error } = await supabase.from('rooms').update({ name: v }).eq('id', id);
               if (!error) setRoomName(v);
               else openInfo('Fehler beim Ändern des Raumnamens.');
             })}>
               <FaPen />
-            </button>
+            </button></h1>
+                                  
 
+                               
 
           </div>
+           
+          
+          
 <div className={styles.participantChips}>
+	
   {participants.map(p => (
     <span key={p.id} className={styles.chip}>{p.name}</span>
   ))}
@@ -626,7 +635,7 @@ const renderOptimized = () => {
       setShowManageModal(true);
     }}
   >
-    <FaPen />
+    <FaPlus />
   </button>
 </div>
 
@@ -634,7 +643,7 @@ const renderOptimized = () => {
 
 <div className={styles.summaryRow}>
   <span className={styles.totalExpenses}>
-    Ausgaben: <strong>{formatAmount(totalExpenses)} €</strong>
+    Ausgaben: <strong>{formatAmount(totalExpenses)} {settings.default_currency}</strong>
   </span>
   <button
     className={styles.anchorLink}
@@ -650,16 +659,18 @@ const renderOptimized = () => {
 
         </div>
         
-                    <button
+         <button
   className={styles.btnCurrency}
   onClick={() => {
     // kopiere aktuelles settings-Objekt in lokale Editable-State
     setEditSettings({ ...settings });
     setShowSettingsModal(true);
   }}
->
-  <FaArrowRightArrowLeft/>Währungseinstellungen
+> 
+  <FaArrowRightArrowLeft/>Währungen
 </button>
+        
+
         
 {/* Direkt unter deinem Header o. Ä. */}
 
@@ -728,7 +739,7 @@ const renderOptimized = () => {
             <h3>Überweisung</h3>
             <span className={styles.flexSpacer} />
             <span>
-              {formatAmount(item.data.amount)} €
+              {formatAmount(item.data.amount)} {settings.default_currency}
             </span>
             <button
               className={styles.btnDelete}
@@ -790,7 +801,7 @@ const renderOptimized = () => {
 
 
       {/* Modals */}
-      <Modal isOpen={showParticipantModal} onClose={() => setShowParticipantModal(false)} title="Teilnehmer hinzufügen">
+      <Modal isOpen={showParticipantModal} onClose={() => setShowParticipantModal(false)} title="Person hinzufügen">
         <input
           className={styles.modalInput}
           placeholder="Name"
@@ -807,14 +818,14 @@ const renderOptimized = () => {
      <Modal
   isOpen={showManageModal}
   onClose={() => setShowManageModal(false)}
-  title="Teilnehmer verwalten"
+  title="Personen verwalten"
 >
   {/* 2a) Add-Feld direkt hier */}
   <div className={`${styles.optionRow} ${styles.addRow}`}>
 
     <input
       className={styles.modalInput}
-      placeholder="Neuen Teilnehmer hinzufügen"
+      placeholder="Neue Person hinzufügen"
       value={newName}
       maxLength={14}
       onChange={e => setNewName(e.target.value)}
@@ -1100,7 +1111,7 @@ const renderOptimized = () => {
       <Modal
   isOpen={showSettingsModal}
   onClose={() => setShowSettingsModal(false)}
-  title="Raum-Einstellungen"
+  title="Währungenseinstellungen"
 >
   {/* Default Currency */}
   <label>Standard-Währung:</label>

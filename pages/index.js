@@ -20,7 +20,7 @@ export default function Home() {
   // Handler zum Erstellen
   async function handleCreateRoom() {
     if (!groupName.trim() || !participantName.trim()) {
-      setErrorMessage('Bitte Raumname und Teilnehmer eingeben.');
+      setErrorMessage('Bitte Raumname und deinen Namen eingeben.');
       return;
     }
 
@@ -41,7 +41,7 @@ export default function Home() {
       .from('participants')
       .insert([{ room_id: id, name: participantName }]);
     if (partError) {
-      setErrorMessage('Fehler beim Hinzufügen des Teilnehmers.');
+      setErrorMessage('Fehler beim Hinzufügen der Person.');
       return;
     }
 
@@ -52,13 +52,19 @@ export default function Home() {
   return (
    <div className={styles.wrapper}>
       <div className={styles.pageContainer}>     
-	 <div className={styles.headerIcon}>
-        <FaMoneyBillTransfer size={42} />
-      </div>
-      <h1 className={styles.title}>SchotterShare</h1>
+<div className={styles.logo}>
+  <Image
+    src="/chotty_logo_full.svg"
+    alt="Chotty Logo"
+    width={256}
+    height={128}
+  />
+
+</div>
       <p className={styles.subtitle}>
-        Verwaltet eure Ausgaben zwischen Freunden  & Familie<br />
-        Optimiert eure Rückzahlungen über den kürzesten Weg.
+        Ausgaben verwalten & teilen.<br />
+        Automatische Währungsumrechnung.<br/>
+        Optimierte Rückzahlungen über den kürzesten Weg.
       </p>
 
       <button
@@ -79,6 +85,9 @@ export default function Home() {
   	<p>
     <FaCheck className={styles.checkIcon} /> Kostenlos & ohne Anmeldung
   	</p>
+  	<p>
+  	<FaCheck className={styles.checkIcon} /> Währungen umrechnen
+	</p>
   	<p>
   	<FaCheck className={styles.checkIcon} /> Beliebig verlängerbar
 	</p>
