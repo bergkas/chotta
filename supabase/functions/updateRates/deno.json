@@ -1,0 +1,9 @@
+{
+  "tasks": {
+    "start": "deno run --allow-env --allow-net index.ts"
+  },
+  "imports": {
+    "node-fetch": "https://cdn.skypack.dev/node-fetch@2.6.7",
+    "@supabase/supabase-js": "https://cdn.skypack.dev/@supabase/supabase-js"
+  }
+}

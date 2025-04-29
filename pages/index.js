@@ -112,10 +112,10 @@ export default function Home() {
               <input
                 className={styles.modalInput}
                 type="text"
-                placeholder="Dein Name (max. 20 Zeichen)"
+                placeholder="Dein Name (max. 14 Zeichen)"
                 value={participantName}
                 onChange={(e) => setParticipantName(e.target.value)}
-                maxLength={20}
+                maxLength={14}
               />
               <button
                 className={styles.btnAdd}

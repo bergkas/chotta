@@ -9,9 +9,12 @@ import {
   FaPen,
   FaArrowRight,
   FaReceipt,
-  FaMoneyBillWave
+  FaMoneyBillWave,
+  FaCoins,
   } from 'react-icons/fa';
-import { FaMoneyBillTransfer } from 'react-icons/fa6';
+import { FaMoneyBillTransfer, FaArrowRightArrowLeft } from 'react-icons/fa6';
+
+
 
 import styles from '../../styles/RoomPage.module.css';
 import Image from 'next/image';
@@ -45,6 +48,7 @@ export default function Room() {
   const [roomName, setRoomName]           = useState('');
   const [expiresAt, setExpiresAt]         = useState(null);
   const [expired, setExpired]             = useState(false);
+  const [settings, setSettings] = useState({ default_currency: 'EUR', extra_currencies: {} , auto_update: false });
 
   const [newName, setNewName]             = useState('');
   const [newExpenseTitle, setNewExpenseTitle] = useState('');
@@ -54,6 +58,15 @@ export default function Room() {
   const [selectedParticipants, setSelectedParticipants] = useState([]);
   const [percentages, setPercentages]     = useState({});
   const [amounts, setAmounts]             = useState({});
+  
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [editSettings, setEditSettings] = useState(settings);
+  const [rates, setRates] = useState({});
+
+
+  
+  const [newExpenseCurrency, setNewExpenseCurrency] = useState('EUR');
+
 
   // modal flags
   const [showParticipantModal, setShowParticipantModal] = useState(false);
@@ -77,6 +90,7 @@ export default function Room() {
   // for delete/rename flows
   const [currentPart, setCurrentPart]       = useState(null);
   const [renameValue, setRenameValue]       = useState('');
+  
 
   // --- Fetches ---
   useEffect(() => {
@@ -85,6 +99,7 @@ export default function Room() {
     fetchExpenses();
     fetchTransfers();
     fetchRoomName();
+    fetchSettings();
   }, [id]);
 
   async function fetchParticipants() {
@@ -120,6 +135,72 @@ async function fetchRoomName() {
     setExpired(data.expired);
   }
 }
+
+async function fetchSettings() {
+  const { data, error } = await supabase
+    .from('room_settings')
+    .select('default_currency, extra_currencies')
+    .eq('room_id', id)
+    .single();
+  if (error || !data) return;
+
+  setSettings(data);
+  setEditSettings(data);
+
+  // erst die Raten laden
+  const extras = Object.keys(data.extra_currencies || {});
+  await fetchRates(data.default_currency, extras);
+
+  // und jetzt den jeweils neuesten updated_at-Timestamp aus currency_rates holen
+  const { data: latest } = await supabase
+    .from('currency_rates')
+    .select('updated_at')
+    .eq('base_currency', data.default_currency)
+    .in('target_currency', extras)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (latest && latest.updated_at) {
+    // packen wir in settings.last_updated
+    setSettings(s => ({ ...s, last_updated: latest.updated_at }));
+  }
+}
+
+
+
+
+ // 1) Fetch current rates for base + all extra currencies
+// 1) Fetch current rates for base + all extra currencies
+async function fetchRates(base, extras) {
+  if (!base) return;
+  const { data } = await supabase
+    .from('currency_rates')
+    .select('target_currency, rate')
+    .eq('base_currency', base)
+    .in('target_currency', extras);
+
+  if (data) {
+    const map = {};
+    data.forEach(r => {
+      map[r.target_currency] = r.rate;
+    });
+    setRates(map);
+  }
+}
+
+
+// wenn editSettings im Modal geändert wird, immer sofort die aktuellen Kurse nachladen:
+useEffect(() => {
+  // nur wenn das Modal überhaupt offen ist
+  if (showSettingsModal) {
+    const base = editSettings.default_currency;
+    const extras = Object.keys(editSettings.extra_currencies);
+    fetchRates(base, extras);
+  }
+}, [editSettings.default_currency, editSettings.extra_currencies, showSettingsModal]);
+
+
 
 
   // --- Helpers ---
@@ -264,23 +345,34 @@ const addExpense = async () => {
   }
   if (distributionType === 'FIXED') {
     const sumAmt = parseFloat(
-      Object.values(amounts)
-        .reduce((s, a) => s + Number(a), 0)
-        .toFixed(2)
+      Object.values(amounts).reduce((s, a) => s + Number(a), 0).toFixed(2)
     );
     if (sumAmt !== total) {
       return openInfo('Einzelbeträge müssen genau dem Gesamtbetrag entsprechen.');
     }
   }
 
-  // 3) Expense anlegen
+// 3) Waehrungs-Umrechnung
+// rate = 1 für Basiswährung, sonst aus live geladenen Raten
+const rate =
+  newExpenseCurrency === settings.default_currency
+    ? 1
+    : rates[newExpenseCurrency] ?? 1;
+
+// hier teilen, nicht multiplizieren!
+const convertedTotal = parseFloat((total / rate).toFixed(2));
+
+  // 4) Expense anlegen
   const { data: exp, error: expError } = await supabase
     .from('expenses')
     .insert([{
-      room_id: id,
-      title: newExpenseTitle,
-      amount: total,
-      paid_by: payerId,
+      room_id:           id,
+      title:             newExpenseTitle,
+      amount:            convertedTotal,
+      original_amount:   total,
+      original_currency: newExpenseCurrency,
+      converted_amount:  convertedTotal,
+      paid_by:           payerId,
       distribution_type: distributionType
     }])
     .select()
@@ -289,40 +381,38 @@ const addExpense = async () => {
     return openInfo('Fehler beim Speichern der Ausgabe.');
   }
 
-  // 4) Shares zusammenstellen
+  // 5) Shares zusammenstellen (in Basis-Währung)
   const mk = (pid, amt, pct) => ({
-    expense_id: exp.id,
+    expense_id:     exp.id,
     participant_id: pid,
-    share_amount: amt,
+    share_amount:   amt,
     ...(pct != null && { share_percent: pct })
   });
 
   let shares = [];
   switch (distributionType) {
     case 'EQUAL_ALL':
-      shares = participants.map(p =>
-        mk(p.id, parseFloat((total / participants.length).toFixed(2)))
-      );
+      const perAll = parseFloat((convertedTotal / participants.length).toFixed(2));
+      shares = participants.map(p => mk(p.id, perAll));
       break;
 
     case 'EQUAL_SOME':
       if (!selectedParticipants.length) {
         return openInfo('Bitte Personen auswählen!');
       }
-      shares = selectedParticipants.map(pid =>
-        mk(pid, parseFloat((total / selectedParticipants.length).toFixed(2)))
-      );
+      const perSome = parseFloat((convertedTotal / selectedParticipants.length).toFixed(2));
+      shares = selectedParticipants.map(pid => mk(pid, perSome));
       break;
 
     case 'PERCENTAGE':
       shares = Object.entries(percentages).map(([pid, pct]) =>
-        mk(pid, parseFloat(((total * pct) / 100).toFixed(2)), Number(pct))
+        mk(pid, parseFloat(((convertedTotal * pct) / 100).toFixed(2)), Number(pct))
       );
       break;
 
     case 'FIXED':
       shares = Object.entries(amounts).map(([pid, amt]) =>
-        mk(pid, parseFloat(Number(amt).toFixed(2)))
+        mk(pid, parseFloat((amt / rate).toFixed(2)))
       );
       break;
 
@@ -330,7 +420,7 @@ const addExpense = async () => {
       break;
   }
 
-  // 5) Shares speichern
+  // 6) Shares speichern
   if (shares.length) {
     const { error: shareError } = await supabase
       .from('expense_shares')
@@ -340,7 +430,7 @@ const addExpense = async () => {
     }
   }
 
-  // 6) Cleanup & Refresh
+  // 7) Cleanup & Refresh
   setNewExpenseTitle('');
   setNewExpenseAmount('');
   setPayerId('');
@@ -351,6 +441,7 @@ const addExpense = async () => {
   fetchExpenses();
   setShowExpenseModal(false);
 };
+
 
 
   const deleteExpense = (eid) =>
@@ -518,6 +609,8 @@ const renderOptimized = () => {
             })}>
               <FaPen />
             </button>
+
+
           </div>
 <div className={styles.participantChips}>
   {participants.map(p => (
@@ -537,6 +630,8 @@ const renderOptimized = () => {
   </button>
 </div>
 
+
+
 <div className={styles.summaryRow}>
   <span className={styles.totalExpenses}>
     Ausgaben: <strong>{formatAmount(totalExpenses)} €</strong>
@@ -555,72 +650,107 @@ const renderOptimized = () => {
 
         </div>
         
+                    <button
+  className={styles.btnCurrency}
+  onClick={() => {
+    // kopiere aktuelles settings-Objekt in lokale Editable-State
+    setEditSettings({ ...settings });
+    setShowSettingsModal(true);
+  }}
+>
+  <FaArrowRightArrowLeft/>Währungseinstellungen
+</button>
+        
 {/* Direkt unter deinem Header o. Ä. */}
 
 
-
-
-
-
         {/* Ausgaben Verlauf */}
-        <section className={styles.expensesSection}>
-          <div className={styles.sectionHeader}>
-            <h2>Ausgabenverlauf</h2>
-            <button className={styles.btnConfirm} onClick={() => setShowExpenseModal(true)}>
-              Hinzufügen <FaPlus />
+       <section className={styles.expensesSection}>
+  <div className={styles.sectionHeader}>
+    <h2>Ausgabenverlauf</h2>
+    <button className={styles.btnConfirm} onClick={() => setShowExpenseModal(true)}>
+      Hinzufügen <FaPlus />
+    </button>
+  </div>
+  {history.length === 0 ? (
+    <p className={styles.noData}>Keine Einträge.</p>
+  ) : (
+    history.map((item, idx) =>
+      item.type === 'expense' ? (
+        <div key={idx} className={styles.expenseCardSmall}>
+          <div className={styles.expenseHeader}>
+            <FaReceipt className={styles.itemIcon} />
+            <h3>{item.data.title}</h3>
+            <span className={styles.flexSpacer} />
+            {/* Basisbetrag */}
+	 	<span>
+			{item.data.original_amount.toFixed(2)}&nbsp;{item.data.original_currency}
+		</span>
+            <button
+              className={styles.btnDelete}
+              onClick={() => deleteExpense(item.data.id)}
+            >
+              <FaTrashAlt />
             </button>
           </div>
-          {history.length === 0 ? (
-            <p className={styles.noData}>Keine Einträge.</p>
-          ) : (
-            history.map((item, idx) =>
-              item.type === 'expense' ? (
-                <div key={idx} className={styles.expenseCardSmall}>
-                  <div className={styles.expenseHeader}>
-                    <FaReceipt className={styles.itemIcon} />
-                    <h3>{item.data.title}</h3>
-                    <span className={styles.flexSpacer} />
-                    <span>{formatAmount(item.data.amount)}&nbsp;€</span>
-                    <button className={styles.btnDelete} onClick={() => deleteExpense(item.data.id)}>
-                      <FaTrashAlt />
-                    </button>
-                  </div>
-                  <div className={styles.dateTime}>{formatDate(item.data.date)}</div>
-     			 <div className={styles.paidBy}>
-	       		 Bezahlt von <strong>{findName(item.data.paid_by)}</strong>
-      			 </div>
-
-
-                  <div className={styles.shareChips}>
-                    {item.data.expense_shares?.map((s) => (
-                      <span key={s.participant_id} className={styles.chip}>
-                        {formatAmount(s.share_amount)} € {findName(s.participant_id)}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div key={idx} className={styles.transferCard}>
-                  <div className={styles.expenseHeader}>
-                    <FaMoneyBillWave className={styles.itemIcon} />
-                    <h3>
-                      Überweisung
-                    </h3>
-                    <span className={styles.flexSpacer} />
-                    <span>{formatAmount(item.data.amount)} €</span>
-                    <button className={styles.btnDelete} onClick={() => deleteTransfer(item.data.id)}>
-                      <FaTrashAlt />
-                    </button>
-                  </div>
-                  <div className={styles.dateTime}>{formatDate(item.data.date)}</div>
-                  <div className={styles.paidBy}>
-	       		  <strong>{findName(item.data.from_id)} → {findName(item.data.to_id)}</strong>
-      			 </div>
-                </div>
-              )
-            )
+          <div className={styles.dateTime}>
+            {formatDate(item.data.date)}
+          </div>
+          <div className={styles.paidBy}>
+            Bezahlt von <strong>{findName(item.data.paid_by)}</strong>
+          </div>
+          
+          {/* Fremdwährungs-Info nur anzeigen, wenn Original ≠ Basis » */}
+          {item.data.original_currency !== settings.default_currency && (
+            <div className={styles.currencyInfo}>
+              <FaArrowRightArrowLeft className={styles.rotateIcon} />
+              <span>
+                {item.data.original_amount.toFixed(2)} 
+                {item.data.original_currency} → {' '}
+                {formatAmount(item.data.converted_amount)} 
+                {settings.default_currency}
+              </span>
+            </div>
           )}
-        </section>
+          <div className={styles.shareChips}>
+  {item.data.expense_shares?.map((s) => (
+    <span key={s.participant_id} className={styles.chip}>
+      {formatAmount(s.share_amount)} {settings.default_currency} {findName(s.participant_id)}
+    </span>
+  ))}
+</div>
+
+        </div>
+      ) : (
+        <div key={idx} className={styles.transferCard}>
+          <div className={styles.expenseHeader}>
+            <FaMoneyBillWave className={styles.itemIcon} />
+            <h3>Überweisung</h3>
+            <span className={styles.flexSpacer} />
+            <span>
+              {formatAmount(item.data.amount)} €
+            </span>
+            <button
+              className={styles.btnDelete}
+              onClick={() => deleteTransfer(item.data.id)}
+            >
+              <FaTrashAlt />
+            </button>
+          </div>
+          <div className={styles.dateTime}>
+            {formatDate(item.data.date)}
+          </div>
+          <div className={styles.paidBy}>
+            <strong>
+              {findName(item.data.from_id)} → {findName(item.data.to_id)}
+            </strong>
+          </div>
+        </div>
+      )
+    )
+  )}
+</section>
+
 
         {/* Optimierte Rückzahlungen */}
         <section id="optimized" className={styles.optimizedSection}>
@@ -759,13 +889,31 @@ const renderOptimized = () => {
     value={newExpenseTitle}
     onChange={(e) => setNewExpenseTitle(e.target.value)}
   />
+  
+ {/* Betrag + Währung nebeneinander */}
+<div className={styles.inputRow}>
   <input
-    className={styles.modalInput}
+    className={`${styles.modalInput} ${styles.inputAmount}`}
     type="number"
     placeholder="Betrag"
     value={newExpenseAmount}
     onChange={(e) => setNewExpenseAmount(e.target.value)}
   />
+  <select
+    className={`${styles.modalInput} ${styles.inputCurrency}`}
+    value={newExpenseCurrency}
+    onChange={(e) => setNewExpenseCurrency(e.target.value)}
+  >
+    <option value={settings.default_currency}>
+      {settings.default_currency} (Basis)
+    </option>
+    {Object.keys(settings.extra_currencies).map((cur) => (
+      <option key={cur} value={cur}>
+        {cur} ({(rates[cur] ?? 1).toFixed(2)})
+      </option>
+    ))}
+  </select>
+</div>
 
   <select
     className={styles.modalInput}
@@ -864,7 +1012,7 @@ const renderOptimized = () => {
           <input
             className={`${styles.modalInput} ${styles.inputSmall}`}
             type="number"
-            placeholder="€"
+            placeholder={newExpenseCurrency}
             value={amounts[p.id] || ''}
             onChange={(e) =>
               setAmounts((prev) => ({
@@ -873,7 +1021,7 @@ const renderOptimized = () => {
               }))
             }
           />
-          <span>€</span>
+          <span>{newExpenseCurrency}</span>
         </div>
       ))}
     </div>
@@ -890,12 +1038,13 @@ const renderOptimized = () => {
 
       return (
         <div className={`${styles.inputSummary} ${stateClass}`}>
-          {sumAmt.toFixed(2)} € von {total.toFixed(2)} €
+          {sumAmt.toFixed(2)} {newExpenseCurrency} von {total.toFixed(2)} {newExpenseCurrency}
         </div>
       );
     })()}
   </>
 )}
+
 
 
   <button
@@ -947,6 +1096,93 @@ const renderOptimized = () => {
           <button className={styles.btnClose} onClick={() => setShowRenameModal(false)}>Abbrechen</button>
         </div>
       </Modal>
+      
+      <Modal
+  isOpen={showSettingsModal}
+  onClose={() => setShowSettingsModal(false)}
+  title="Raum-Einstellungen"
+>
+  {/* Default Currency */}
+  <label>Standard-Währung:</label>
+  <select
+    className={styles.modalInput}
+    value={editSettings.default_currency}
+    onChange={e => setEditSettings(s => ({
+      ...s,
+      default_currency: e.target.value
+    }))}
+  >
+    {/* hier eine Array mit allen Währungscodes */}
+    {['EUR','USD','PLN','GBP','CHF','CZK','HUF',
+    'SEK','NOK','DKK'].map(cur => (
+      <option key={cur} value={cur}>{cur}</option>
+    ))}
+  </select>
+
+  {/* Extra Currencies */}
+  <label>Zusätzliche Währungen:</label>
+  <div className={styles.optionGrid}>
+    {['EUR','USD','PLN','GBP','CHF','CZK','HUF',
+    'SEK','NOK','DKK'].map(cur => (
+      <label key={cur} className={styles.optionLabel}>
+        <input
+          type="checkbox"
+          checked={!!editSettings.extra_currencies[cur]}
+          onChange={e => {
+            const rates = { ...editSettings.extra_currencies };
+            if (e.target.checked) rates[cur] = 1;  // Platzhalter-Rate
+            else delete rates[cur];
+            setEditSettings(s => ({ ...s, extra_currencies: rates }));
+          }}
+        />
+        {cur}
+      </label>
+    ))}
+  </div>
+
+ {/* Aktuelle Wechselkurse */}
+<div className={styles.rateList}>
+  <h4>Aktuelle Wechselkurse (1 {editSettings.default_currency} = …)</h4>
+  {Object.entries(rates).map(([cur, r]) => (
+    <div key={cur} className={styles.optionRow}>
+      <span>{r.toFixed(2)}</span>
+      <span>{cur}</span>
+    </div>
+  ))}
+</div>
+
+<p className={styles.rateInfoText}>
+  Wechselkurse werden automatisch alle 72 Stunden aktualisiert.{' '}
+  {settings.last_updated
+    ? `Letzte Aktualisierung am ${new Date(settings.last_updated).toLocaleDateString('de-DE')}.`
+    : 'Noch keine Aktualisierung erfolgt.'}
+</p>
+
+
+
+<button
+  className={styles.btnAdd}
+  onClick={async () => {
+    const { error } = await supabase
+      .from('room_settings')
+      .upsert({
+        room_id:           id,
+        default_currency:  editSettings.default_currency,
+        extra_currencies:  editSettings.extra_currencies,
+        auto_update:       true          // immer true
+      });
+    if (error) openInfo('Fehler beim Speichern der Einstellungen.');
+    else {
+      setSettings(editSettings);
+      setShowSettingsModal(false);
+    }
+  }}
+>
+  Speichern
+</button>
+
+</Modal>
+
 
 {/* Info-Modal */}
 <Modal

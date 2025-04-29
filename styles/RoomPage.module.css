@@ -3,7 +3,7 @@
 /* Grundlayout */
 .roomContainer {
   max-width: 480px;
-  margin: 24px auto;
+  margin: 6px auto;
   padding: 32px;
   font-family: "Montserrat", sans-serif;
   color: #333;
@@ -67,7 +67,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin-bottom: 32px;
+  margin-bottom: 8px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 
@@ -122,7 +122,7 @@
 }
 .btnEdit:hover,
 .btnEdit:focus {
-  color: #4338ca;
+  opacity: 0.5;
   outline: none;
 }
 
@@ -158,7 +158,7 @@
 }
 .iconButton:hover,
 .iconButton:focus {
-  color: #4338ca;
+  opacity: 0.5;
   outline: none;
 }
 
@@ -231,6 +231,19 @@
   color: #333;           /* Name in normaler Textfarbe */
 }
 
+.rotateIcon {
+  margin-right: 6px;
+  font-size: 0.8em;
+  vertical-align: middle;
+}
+
+.currencyInfo {
+  font-size: 0.8em;
+  color: #4b5563;
+  margin-top: 12px;
+}
+
+
 
 /* Share Chips */
 .shareChips {
@@ -286,6 +299,34 @@
   color: #6b7280;
   margin-left: auto;
 }
+
+
+
+/* unterhalb der Checkboxen im Modal */
+.rateList {
+  display: flex-start;
+  flex-direction: column;
+  gap: 4px;
+  margin: 12px 0;
+  font-size: 0.9em;
+}
+
+.flexSpacerRates {
+  flex: 0.6;
+}
+
+
+
+.rateItem {
+  /* evtl. noch leichtes Padding oder Border-bottom */
+}
+.rateInfoText {
+  font-size: 0.8em!important;
+  color: #6b7280;
+  margin-bottom: 8px!important;
+}
+
+
 
 /* Optimized Debts */
 .optimizedSection {
@@ -461,6 +502,18 @@
   transform: scale(0.97);
 }
 
+.btnCurrency {
+  background: transparent;
+  color: #777;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9em;
+  cursor: pointer;
+  margin-bottom: 16px;
+  }
+
 /* Speziell für die Add-Teilnehmer-Zeile im Manage-Modal */
 .addRow {
   align-items: top;             /* Input & Button vertikal zentrieren */
@@ -523,6 +576,23 @@
   text-align: right;      /* Zahl am rechten Rand */
   padding: 8px;           /* zu .modalInput passend */
 }
+
+/* RoomPage.module.css */
+
+.inputRow {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px; /* optional, Abstand nach unten */
+}
+
+.inputAmount {
+  flex: 55;  
+}
+
+.inputCurrency {
+  flex: 45;   
+}
+
 
 /* kleine Summenanzeige unter den Inputs */
 /* Standard-Summary */
