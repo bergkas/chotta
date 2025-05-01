@@ -561,18 +561,21 @@ export default function Room() {
                 <div key={idx} className={styles.expenseCardSmall}>
                   <div className={styles.expenseHeader}>
                     <FaReceipt className={styles.itemIcon} />
-                    <h3>{item.data.title}</h3>
+                    <h3>{item.data.title} </h3>
+             
                     <span className={styles.flexSpacer} />
-                    <span>
-                      {item.data.original_amount.toFixed(2)}{' '}
-                      {item.data.original_currency}
-                    </span>
+					<span>
+						{item.data.original_amount.toFixed(2)}
+						<sup className={styles.currency}>{item.data.original_currency}</sup>
+					</span>
                     <button
                       className={styles.btnDelete}
                       onClick={() => deleteExpense(item.data.id)}
                     >
                       <FaTrashAlt />
                     </button>
+
+                    
                   </div>
                   <div className={styles.dateTime}>
                     {formatDate(item.data.date)}
@@ -603,7 +606,10 @@ export default function Room() {
                         {formatAmount(s.share_amount)}{' '}
                         {settings.default_currency}{' '}
                         {findName(s.participant_id)}
+                        
                       </span>
+                      
+                      
                     ))}
                   </div>
                 </div>

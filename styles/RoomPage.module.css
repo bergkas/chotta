@@ -220,7 +220,7 @@
 }
 .expenseHeader {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 2px;
 }
 .expenseHeader h3 {
@@ -234,6 +234,13 @@
   font-weight: 600;
   color: var(--text);
 }
+
+.currency {
+  font-size: 0.6em;       /* make it smaller */
+  vertical-align: super;  /* raise it */
+  margin-left: 2px;       /* a bit of separation */
+}
+
 .flexSpacer {
   flex: 1;
 }
@@ -284,12 +291,12 @@
 
 /* Delete Button */
 .btnDelete {
-  margin-left: 4px;
-  margin-top: 2px;
+  margin-left: 0px;
+  margin-top: 4px;
   background: none;
   border: none;
   color: #ef4444;
-  font-size: 0.8em;
+  font-size: 0.7em;
   cursor: pointer;
   transition: color 0.2s;
 }
@@ -641,8 +648,8 @@
   .expenseCardSmall,
   .transferCard,
   .debtItem {
-    padding: 12px;
-    margin-bottom: 12px;
+    padding: 10px;
+    margin-bottom: 16px;
   }
   .btnAdd,
   .btnConfirm {
