@@ -619,10 +619,10 @@ export default function Room() {
                     <FaMoneyBillWave className={styles.itemIcon} />
                     <h3>Überweisung</h3>
                     <span className={styles.flexSpacer} />
-                    <span>
-                      {formatAmount(item.data.amount)}{' '}
-                      {settings.default_currency}
-                    </span>
+					<span>
+						{formatAmount(item.data.amount)}
+						<sup className={styles.currency}>{settings.default_currency}</sup>
+					</span>
                     <button
                       className={styles.btnDelete}
                       onClick={() => deleteTransfer(item.data.id)}
