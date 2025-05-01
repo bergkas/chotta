@@ -6,6 +6,7 @@ import { useRouter } from 'next/router';
 import Image from 'next/image';
 
 import { supabase } from '../../lib/supabase';
+import { Parser } from 'expr-eval';
 import styles from '../../styles/RoomPage.module.css';
 
 import {
@@ -17,7 +18,8 @@ import {
   FaReceipt,
   FaMoneyBillWave,
   FaSun,
-  FaMoon
+  FaMoon,
+  FaCalculator
 } from 'react-icons/fa';
 import { FaMoneyBillTransfer, FaArrowRightArrowLeft } from 'react-icons/fa6';
 
@@ -98,6 +100,13 @@ export default function Room() {
   const [selectedParticipants, setSelectedParticipants] = useState([]);
   const [percentages, setPercentages] = useState({});
   const [amounts, setAmounts] = useState({});
+
+  // calculator modal state
+  const [formulas, setFormulas] = useState({});
+  const [showCalcModal, setShowCalcModal] = useState(false);
+  const [currentCalcParticipant, setCurrentCalcParticipant] = useState(null);
+  const [calcExpr, setCalcExpr] = useState('');
+
 
   // Modals
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -221,6 +230,27 @@ export default function Room() {
     new Date(dt).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' });
   const findName = (pid) => participants.find((p) => p.id === pid)?.name || '–';
   const totalExpenses = expenses.reduce((sum, e) => sum + parseFloat(e.amount), 0);
+  
+  // --- Calculator ---
+  // open the calc for a given participant
+  const openCalc = (pid) => {
+    setCurrentCalcParticipant(pid);
+    setCalcExpr(formulas[pid] || '');
+    setShowCalcModal(true);
+  };
+
+  // confirm & save
+  const handleCalcConfirm = () => {
+    const parser = new Parser();
+    try {
+      const val = parser.evaluate(calcExpr || '0');
+      if (typeof val !== 'number' || Number.isNaN(val)) throw new Error();
+      setFormulas(f => ({ ...f, [currentCalcParticipant]: calcExpr }));
+      setShowCalcModal(false);
+    } catch {
+      openInfo('Ungültige Rechnung');
+    }
+  };
 
   // --- Dialog Starters ---
   const openConfirm = (msg, action) => {
@@ -314,63 +344,148 @@ export default function Room() {
     openInfo('Raum wurde um 14 Tage verlängert.');
   }
 
-  // --- Expense Actions ---
-  async function addExpense() {
-    if (!newExpenseTitle || !newExpenseAmount || !payerId) return openInfo('Bitte Titel, Betrag und Zahler angeben.');
-    const total = parseFloat(newExpenseAmount);
 
-    if (distributionType === 'PERCENTAGE') {
-      const sumPct = Object.values(percentages).reduce((s, v) => s + Number(v), 0);
-      if (sumPct !== 100) return openInfo('Summe der Prozente muss genau 100 % betragen.');
-    }
-    if (distributionType === 'FIXED') {
-      const sumAmt = parseFloat(Object.values(amounts).reduce((s, a) => s + Number(a), 0).toFixed(2));
-      if (sumAmt !== total) return openInfo('Einzelbeträge müssen genau dem Gesamtbetrag entsprechen.');
-    }
 
-    const rate = newExpenseCurrency === settings.default_currency
-      ? 1
-      : rates[newExpenseCurrency] || 1;
-    const converted = parseFloat((total / rate).toFixed(2));
-
-    const { data: exp, error: expError } = await supabase
-      .from('expenses')
-      .insert([{ room_id: id, title: newExpenseTitle, amount: converted, original_amount: total, original_currency: newExpenseCurrency, converted_amount: converted, paid_by: payerId, distribution_type: distributionType }])
-      .select()
-      .single();
-    if (expError || !exp) return openInfo('Fehler beim Speichern der Ausgabe.');
-
-    const makeShare = (pid, amt, pct) => ({ expense_id: exp.id, participant_id: pid, share_amount: amt, ...(pct != null && { share_percent: pct }) });
-    let shares = [];
-
-    switch (distributionType) {
-      case 'EQUAL_ALL':
-        shares = participants.map(p => makeShare(p.id, parseFloat((converted / participants.length).toFixed(2))));
-        break;
-      case 'EQUAL_SOME':
-        if (!selectedParticipants.length) return openInfo('Bitte Personen auswählen!');
-        shares = selectedParticipants.map(pid => makeShare(pid, parseFloat((converted / selectedParticipants.length).toFixed(2))));
-        break;
-      case 'PERCENTAGE':
-        shares = Object.entries(percentages).map(([pid, pct]) => makeShare(pid, parseFloat((converted * pct / 100).toFixed(2)), Number(pct)));
-        break;
-      case 'FIXED':
-        shares = Object.entries(amounts).map(([pid, amt]) => makeShare(pid, parseFloat((amt / rate).toFixed(2))));
-        break;
-      default:
-        break;
-    }
-
-    if (shares.length) {
-      const { error: shareError } = await supabase.from('expense_shares').insert(shares);
-      if (shareError) return openInfo('Fehler beim Speichern der Anteile.');
-    }
-
-    setNewExpenseTitle(''); setNewExpenseAmount(''); setPayerId(''); setDistributionType('EQUAL_ALL');
-    setSelectedParticipants([]); setPercentages({}); setAmounts({});
-    fetchExpenses();
-    setShowExpenseModal(false);
+// --- Expense Actions ---
+async function addExpense() {
+  if (!newExpenseTitle || !newExpenseAmount || !payerId) {
+    return openInfo('Bitte Titel, Betrag und Zahler angeben.');
   }
+  const total = parseFloat(newExpenseAmount);
+
+  // 1) Validate PERCENTAGE
+  if (distributionType === 'PERCENTAGE') {
+    const sumPct = Object.values(percentages).reduce((s, v) => s + Number(v), 0);
+    if (sumPct !== 100) {
+      return openInfo('Summe der Prozente muss genau 100 % betragen.');
+    }
+  }
+
+  // 2) Validate FIXED
+  if (distributionType === 'FIXED') {
+    const sumAmt = parseFloat(
+      Object.values(amounts).reduce((s, a) => s + Number(a), 0).toFixed(2)
+    );
+    if (sumAmt !== total) {
+      return openInfo('Einzelbeträge müssen genau dem Gesamtbetrag entsprechen.');
+    }
+  }
+
+  // 3) Pre-validate BILL_SPLIT
+  let billed; 
+  if (distributionType === 'BILL_SPLIT') {
+    const parser = new Parser();
+    billed = participants.map(p => {
+      const expr = formulas[p.id] || '0';
+      let raw;
+      try {
+        raw = parser.evaluate(expr);
+        if (typeof raw !== 'number' || Number.isNaN(raw)) throw new Error();
+      } catch {
+        throw new Error(`Ungültige Formel für ${findName(p.id)}`);
+      }
+      return { pid: p.id, raw };
+    });
+    // sum raw values, then round once
+    const sumRaw = billed.reduce((acc, x) => acc + x.raw, 0);
+    if (parseFloat(sumRaw.toFixed(2)) !== total) {
+      return openInfo('Summe der Formeln muss dem Gesamtbetrag entsprechen.');
+    }
+  }
+
+  // 4) Currency conversion
+  const rate = newExpenseCurrency === settings.default_currency
+    ? 1
+    : rates[newExpenseCurrency] || 1;
+  const converted = parseFloat((total / rate).toFixed(2));
+
+  // 5) Insert expense
+  const { data: exp, error: expError } = await supabase
+    .from('expenses')
+    .insert([{
+      room_id:          id,
+      title:            newExpenseTitle,
+      amount:           converted,
+      original_amount:  total,
+      original_currency:newExpenseCurrency,
+      converted_amount: converted,
+      paid_by:          payerId,
+      distribution_type:distributionType
+    }])
+    .select()
+    .single();
+  if (expError || !exp) {
+    return openInfo('Fehler beim Speichern der Ausgabe.');
+  }
+
+  // 6) Build shares
+  const makeShare = (pid, amt, pct) => ({
+    expense_id:    exp.id,
+    participant_id: pid,
+    share_amount:  amt,
+    ...(pct != null && { share_percent: pct })
+  });
+  const parser = new Parser();
+  let shares = [];
+
+  switch (distributionType) {
+    case 'EQUAL_ALL':
+      shares = participants.map(p =>
+        makeShare(p.id, parseFloat((converted / participants.length).toFixed(2)))
+      );
+      break;
+
+    case 'EQUAL_SOME':
+      shares = selectedParticipants.map(pid =>
+        makeShare(pid, parseFloat((converted / selectedParticipants.length).toFixed(2)))
+      );
+      break;
+
+    case 'PERCENTAGE':
+      shares = Object.entries(percentages).map(([pid, pct]) =>
+        makeShare(pid, parseFloat(((converted * pct) / 100).toFixed(2)), Number(pct))
+      );
+      break;
+
+    case 'FIXED':
+      shares = Object.entries(amounts).map(([pid, amt]) =>
+        makeShare(pid, parseFloat((amt / rate).toFixed(2)))
+      );
+      break;
+
+    case 'BILL_SPLIT':
+      shares = billed.map(x =>
+        makeShare(x.pid, parseFloat(x.raw.toFixed(2)))
+      );
+      break;
+
+    default:
+      break;
+  }
+
+  // 7) Insert shares
+  if (shares.length) {
+    const { error: shareError } = await supabase
+      .from('expense_shares')
+      .insert(shares);
+    if (shareError) {
+      return openInfo('Fehler beim Speichern der Anteile.');
+    }
+  }
+
+  // 8) Cleanup & refresh
+  setNewExpenseTitle('');
+  setNewExpenseAmount('');
+  setPayerId('');
+  setDistributionType('EQUAL_ALL');
+  setSelectedParticipants([]);
+  setPercentages({});
+  setAmounts({});
+  setFormulas({});
+  fetchExpenses();
+  setShowExpenseModal(false);
+}
+
 
   const deleteExpense = eid => openConfirm('Ausgabe löschen?', async () => { await supabase.from('expenses').delete().eq('id', eid); fetchExpenses(); });
 
@@ -803,11 +918,11 @@ export default function Room() {
       onChange={e => setNewExpenseCurrency(e.target.value)}
     >
       <option value={settings.default_currency}>
-        {settings.default_currency} (Basis)
+        {settings.default_currency}
       </option>
       {Object.keys(settings.extra_currencies).map(cur => (
         <option key={cur} value={cur}>
-          {cur} ({(rates[cur] ?? 1).toFixed(2)})
+          {cur}
         </option>
       ))}
     </select>
@@ -825,15 +940,17 @@ export default function Room() {
     ))}
   </select>
   <select
-    className={styles.modalInput}
-    value={distributionType}
-    onChange={e => setDistributionType(e.target.value)}
-  >
-    <option value="EQUAL_ALL">Gleich (alle)</option>
-    <option value="EQUAL_SOME">Gleich (ausgewählt)</option>
-    <option value="PERCENTAGE">Prozentual</option>
-    <option value="FIXED">Festbeträge</option>
-  </select>
+  className={styles.modalInput}
+  value={distributionType}
+  onChange={e => setDistributionType(e.target.value)}
+>
+  <option value="EQUAL_ALL">Gleich (alle)</option>
+  <option value="EQUAL_SOME">Gleich (ausgewählt)</option>
+  <option value="PERCENTAGE">Prozentual</option>
+  <option value="FIXED">Festbeträge</option>
+  <option value="BILL_SPLIT">Rechnung aufteilen</option> 
+</select>
+
 
   {distributionType === 'EQUAL_SOME' && (
     <div className={styles.optionGrid}>
@@ -933,6 +1050,61 @@ export default function Room() {
       </div>
     </>
   )}
+{/* BILL_SPLIT */}
+{distributionType === 'BILL_SPLIT' && (
+  <>
+    <div className={styles.optionList}>
+      {participants.map(p => {
+        // evaluate the formula to a number
+        let value = 0;
+        try {
+          value = new Parser().evaluate(formulas[p.id] || '0');
+        } catch {}
+        return (
+          <div key={p.id} className={styles.optionRow}>
+            {/* name on left */}
+            <span>{p.name}</span>
+            {/* flex spacer */}
+            <span className={styles.flexSpacer} />
+            {/* show the computed sum */}
+            <span>{value.toFixed(2)} {newExpenseCurrency}</span>
+            {/* calculator icon */}
+            <button
+              className={styles.calcButton}
+              onClick={() => openCalc(p.id)}
+            >
+              <FaCalculator />
+            </button>
+          </div>
+        );
+      })}
+    </div>
+
+    {/* summary line */}
+    {(() => {
+      const total = parseFloat(newExpenseAmount || 0);
+      let sum = 0;
+      const parser = new Parser();
+      participants.forEach(p => {
+        try {
+          sum += Number(parser.evaluate(formulas[p.id] || '0'));
+        } catch {}
+      });
+      sum = parseFloat(sum.toFixed(2));
+
+      let stateClass = styles.summaryNeutral;
+      if (sum === total) stateClass = styles.summaryValid;
+      else stateClass = styles.summaryInvalid;
+
+      return (
+        <div className={`${styles.inputSummary} ${stateClass}`}>
+          {sum.toFixed(2)} von {total.toFixed(2)} {newExpenseCurrency}
+        </div>
+      );
+    })()}
+  </>
+)}
+
 
   <button
     className={`${styles.btnAdd} ${styles.mt4}`}
@@ -1142,6 +1314,53 @@ export default function Room() {
     Speichern
   </button>
 </Modal>
+
+{/* Calculator Modal */}
+<Modal
+  isOpen={showCalcModal}
+  onClose={() => setShowCalcModal(false)}
+  title={`Rechnung für ${findName(currentCalcParticipant)}`}
+>
+  {/* Display */}
+  <div className={styles.calcDisplay}>
+    {calcExpr || '0'}
+  </div>
+
+  {/* Keys grid */}
+  <div className={styles.calcGrid}>
+    {[
+      '7','8','9','/',
+      '4','5','6','*',
+      '1','2','3','-',
+      '0','.','DEL','+',
+      '(',')','C','OK'
+    ].map(key => {
+      const isOp = ['/', '*', '-', '+', '(', ')', 'C', 'DEL'].includes(key);
+      const isOk = key === 'OK';
+      return (
+        <button
+          key={key}
+          className={`
+            ${styles.calcKey}
+            ${isOp   ? styles.calcKeyOp : ''}
+            ${isOk   ? styles.calcKeyOk : ''}
+          `}
+          onClick={() => {
+            if (key === 'C')      return setCalcExpr('');
+            if (key === 'DEL')    return setCalcExpr(expr => expr.slice(0, -1));
+            if (key === 'OK')     return handleCalcConfirm();
+            setCalcExpr(expr => expr + key);
+          }}
+        >
+          {key === 'DEL' ? '⌫' : key}
+        </button>
+      );
+    })}
+  </div>
+</Modal>
+
+
+
 
 
       </div>
