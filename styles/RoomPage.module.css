@@ -1,27 +1,54 @@
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap');
 
 /* Grundlayout */
+
+/* Theme wrapper – defines CSS vars scoped to this module */
+.theme {
+  /* fallback light-mode vars */
+  --bg: #fff;
+  --text: #333;
+  --text-acc: #333;
+  --card-bg: #fafafa;
+  --chip-bg: #ddd;
+  --modal-bg: #fff;
+  --transfer-bg: #ecfdf5;
+  --transfer-bg-hover: #d1fae5;
+  --primary: #4f46e5;
+  --secondary: #4f46e5;
+}
+
+/* Dark-mode overrides */
+.dark {
+  --bg: #1e1e1e;
+  --text: #fff;
+  --text-acc: #ccc;
+  --card-bg: #2a2a2a;
+  --modal-bg: #242424;
+  --transfer-bg: #ecfdf511;
+  --transfer-bg-hover: #ecfdf533;
+  --chip-bg: #3f3f3f;
+  --primary: #4f46e5;
+  --secondary: #4f46e5;
+}
+
+/* Automatically switch to dark vars when the user’s OS is in dark mode */
+
+
+
+/* Apply theme variables */
 .roomContainer {
   max-width: 480px;
   margin: 6px auto;
   padding: 32px;
   font-family: "Montserrat", sans-serif;
-  color: #333;
-  background-color: #fff;
-
+  color: var(--text);
+  background-color: var(--bg);
   border-radius: 12px;
 }
 
-.h2 {
-  margin-top: 0;
-  margin-bottom: 16px;
-}
-.h3 {
-  margin-top: 0;
-  margin-bottom: 8px;
-}
-
-
+/* Headings utility */
+.h2 { margin: 0 0 16px; }
+.h3 { margin: 0 0 8px; }
 
 /* ---------------------------------- */
 /* Zeile: Gesamtausgaben ↔ Ankerlink  */
@@ -30,20 +57,17 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin: 16px 0px 0px 0px;           /* etwas Abstand nach oben/unten */
-  padding: 0 4px;           /* minimaler horizontaler Puffer */
+  margin-top: 16px;
+  padding: 0 4px;
 }
-
 .totalExpenses {
   font-size: 0.9rem;
   color: #fff;
 }
-
 .anchorLink {
   background: none;
-  font-family: "Montserrat", sans-serif;
   border: none;
-  padding: 0px;
+  padding: 0;
   color: #fff;
   font-size: 0.9rem;
   cursor: pointer;
@@ -51,57 +75,45 @@
 }
 .anchorLink:hover,
 .anchorLink:focus {
-  color: #fff;
   text-decoration: underline;
 }
-
-
-
 
 /* Header */
 .headerContainer {
   position: relative;
-  background: linear-gradient(135deg, #4f46e5 0%, #3227B0 100%);  padding: 20px;
-  color: #fff;
-  border-radius: 12px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  padding: 20px;
   margin-bottom: 8px;
+  background: linear-gradient(135deg, #4f46e5 0%, #3227B0 100%);
+  color: #fff;
+  border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
-
-
-
 .headerContainer .participantChips .chip {
   background: transparent;
-  padding: 3px 10px 3px 10px;
+  padding: 3px 10px;
   border: 1.6px solid #fff;
   color: #fff;
 }
-
 .titleRow {
   display: flex;
-  justify-content: flex-start;
-  gap: 2px;
   align-items: top;
+  gap: 2px;
   margin-bottom: 36px;
   max-width: 66%;
-
 }
-
 .titleRow h1,
 .titleRow button {
   color: #fff;
 }
-
 .roomTitle {
   font-size: 1.5em;
   font-weight: 600;
   margin: 0;
   word-break: break-all;
 }
-
 .logo {
   position: absolute;
   top: -12px;
@@ -109,16 +121,14 @@
   pointer-events: none;
   opacity: 0.75;
 }
-
-
 .btnEdit {
   background: none;
   border: none;
   color: #fff;
   margin-top: 3px;
-  font-size: 0.5em!important;
+  font-size: 0.5em !important;
   cursor: pointer;
-  transition: color 0.2s;
+  transition: opacity 0.2s;
 }
 .btnEdit:hover,
 .btnEdit:focus {
@@ -126,39 +136,50 @@
   outline: none;
 }
 
+/* Toolbar */
+.toolbar {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px; /* or whatever spacing you like */
+}
+
+/* pushes the second button to the right */
+.toolbarSpacer {
+  flex: 1;
+}
+
+
 /* Participant Chips */
 .participantChips {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
-
 .chip {
-  background: #e5e7eb;
-  padding: 6px 12px;
-  border-radius: 12px;
-  font-size: 0.85em;
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  padding: 6px 12px;
+  background: var(--card-bg);
+  border-radius: 12px;
+  font-size: 0.85em;
   transition: background 0.2s;
+  color: var(--text);
 }
 .chip:hover {
-  background: #d1d5db;
+  background: var(--modal-bg);
 }
-
 .iconButton {
-  background: none;
-  font-family: "Montserrat", sans-serif;
-  border: 1.6px solid;
-  border-radius: 12px;
-  padding: 6px;
-  color: #fff;
   display: inline-flex;
   align-items: center;
+  padding: 6px;
+  background: none;
+  border: 1.6px solid #fff;
+  border-radius: 12px;
   font-size: 1em;
+  color: #fff;
   cursor: pointer;
-  transition: color 0.2s;
+  transition: opacity 0.2s;
 }
 .iconButton:hover,
 .iconButton:focus {
@@ -166,11 +187,10 @@
   outline: none;
 }
 
-/* Verlauf / Expenses List */
+/* Expenses List */
 .expensesSection {
   margin-bottom: 40px;
 }
-
 .sectionHeader {
   display: flex;
   justify-content: space-between;
@@ -182,23 +202,22 @@
   font-weight: 700;
   margin-bottom: 24px;
   text-decoration: underline;
-  text-decoration-color: #4f46e5;
+  text-decoration-color: var(--primary);
   text-decoration-thickness: 0.1em;
 }
-
 .expenseCardSmall {
-  background: #fff;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-  border-radius: 8px;
   padding: 16px;
   margin-bottom: 16px;
+  background: var(--card-bg);
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
   transition: transform 0.1s, box-shadow 0.2s;
+  color: var(--text);
 }
 .expenseCardSmall:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
-
 .expenseHeader {
   display: flex;
   align-items: center;
@@ -206,77 +225,72 @@
 }
 .expenseHeader h3 {
   flex-shrink: 1;
-  word-break: break-word;
-  font-size: 1em;
   margin: 0;
+  font-size: 1em;
+  word-break: break-word;
+  color: var(--text);
 }
 .expenseHeader span {
   font-weight: 600;
+  color: var(--text);
 }
 .flexSpacer {
   flex: 1;
 }
-
-.amount {
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
 .dateTime {
-  font-size: 0.75em;
-  color: #6b7280;
   margin: 4px 0;
+  font-size: 0.75em;
+  color: var(--text-acc);
 }
-
 .paidBy {
+  margin: 4px 0;
   font-size: 0.8em;
-  color: #4b5563;        /* etwas dezentere Schriftfarbe */
-  margin: 4px 0;         /* Abstand nach oben und unten */
-  font-family: "Montserrat", sans-serif;
+  color: var(--text-acc);
 }
 .paidBy strong {
-  color: #333;           /* Name in normaler Textfarbe */
+  color: var(--text);
 }
-
 .rotateIcon {
   margin-right: 6px;
   font-size: 0.8em;
   vertical-align: middle;
 }
-
 .currencyInfo {
-  font-size: 0.8em;
-  color: #4b5563;
   margin-top: 12px;
+  font-size: 0.8em;
+  color: var(--text-acc);
 }
-
-
 
 /* Share Chips */
 .shareChips {
-  font-size: 0.8em;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  font-size: 0.8em;
   margin-top: 16px;
+  color: var(--text-acc);
+}
+
+.shareChips .chip {
+	background-color: var(--chip-bg);
 }
 
 /* Icons */
 .itemIcon {
   margin-right: 8px;
   font-size: 1.2em;
-  color: #4f46e5;
+  color: var(--primary);
 }
 
-/* Delete button */
+/* Delete Button */
 .btnDelete {
+  margin-left: 4px;
+  margin-top: 2px;
   background: none;
   border: none;
   color: #ef4444;
   font-size: 0.8em;
   cursor: pointer;
-  margin-left: 4px;
-  margin-top: 2px;
   transition: color 0.2s;
 }
 .btnDelete:hover,
@@ -285,55 +299,43 @@
   outline: none;
 }
 
-/* Transfers in history */
+/* Transfers */
 .transferCard {
-  background: #ecfdf5;
-  border: 1px solid #10b981;
   padding: 16px;
-  border-radius: 8px;
   margin-bottom: 16px;
+  background: var(--transfer-bg);
+  border: 1px solid #10b981;
+  border-radius: 8px;
   transition: background 0.2s;
+  color: var(--text);
 }
 .transferCard:hover {
-  background: #d1fae5;
+  background: var(--transfer-bg-hover);
 }
 .transferCard .expenseHeader {
   display: flex;
   align-items: center;
 }
 .transferDate {
-  font-size: 0.75em;
-  color: #6b7280;
   margin-left: auto;
+  font-size: 0.75em;
+  color: var(--text-acc);
 }
 
-
-
-/* unterhalb der Checkboxen im Modal */
+/* Rates in Modal */
 .rateList {
-  display: flex-start;
+  display: flex;
   flex-direction: column;
   gap: 4px;
   margin: 12px 0;
   font-size: 0.9em;
-}
-
-.flexSpacerRates {
-  flex: 0.6;
-}
-
-
-
-.rateItem {
-  /* evtl. noch leichtes Padding oder Border-bottom */
+  color: var(--text);
 }
 .rateInfoText {
-  font-size: 0.8em!important;
+  margin-bottom: 8px !important;
+  font-size: 0.8em !important;
   color: #6b7280;
-  margin-bottom: 8px!important;
 }
-
-
 
 /* Optimized Debts */
 .optimizedSection {
@@ -345,29 +347,27 @@
   gap: 8px;
 }
 .debtItem {
-  background: #f9fafb;
-  padding: 16px;
-  margin-bottom: 16px;
-  border-radius: 8px;
   display: flex;
   align-items: center;
   gap: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  background: var(--card-bg);
+  border-radius: 8px;
   transition: background 0.2s;
+  color: var(--text);
 }
 .debtItem:hover {
-  background: #eef1f6;
+  background: var(--modal-bg);
 }
 .debtIcon {
-  color: #4f46e5;
+  color: var(--primary);
 }
-.noDebt {
-  font-style: italic;
-  color: #6b7280;
-}
+.noDebt,
 .noData {
+  margin-bottom: 12px;
   font-style: italic;
   color: #6b7280;
-  margin-bottom: 12px;
 }
 
 /* Confirmation Buttons */
@@ -377,18 +377,18 @@
   margin-top: 16px;
 }
 
-/* Loading */
+/* Loading State */
 .loading {
+  padding: 32px 0;
   text-align: center;
   color: #6b7280;
-  padding: 32px 0;
 }
 
 /* Modals */
 .modalOverlay {
   position: fixed;
-  padding: 0 16px;
   inset: 0;
+  padding: 0 16px;
   background: rgba(0,0,0,0.5);
   display: flex;
   align-items: center;
@@ -396,7 +396,7 @@
   z-index: 9999;
 }
 .modalContent {
-  background: #fff;
+  background: var(--modal-bg);
   border-radius: 12px;
   margin: auto;
   width: 90%;
@@ -405,28 +405,26 @@
   box-shadow: 0 4px 16px rgba(0,0,0,0.2);
   max-height: 90vh;
   overflow-y: auto;
-}
-
-.modalBody p {
   font-family: "Montserrat", sans-serif;
-  font-size: 1rem;
-  line-height: 1.5;
-  color: #333;
-  margin: 0;
+  color: var(--text);
 }
-
-
 .modalHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
 }
+.modalHeader h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text);
+}
 .btnClose {
   background: none;
   border: none;
   font-size: 1.2em;
-  color: #333;
+  color: var(--text);
   cursor: pointer;
   transition: color 0.2s;
 }
@@ -438,110 +436,97 @@
 .modalBody {
   margin-top: 8px;
 }
-
-.modalHeader h3 {
-  font-family: "Montserrat", sans-serif;
-  font-size: 1.25rem;
-  font-weight: 600;
+.modalBody p {
   margin: 0;
-  color: #333;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--text);
 }
-
 .modalInput {
   width: 95%;
-  font-family: "Montserrat", sans-serif;
   font-size: 1.2em;
   padding: 10px;
   margin-bottom: 16px;
   border: 1px solid #ddd;
   border-radius: 10px;
   transition: border-color 0.2s;
+  background: var(--card-bg);
+  color: var(--text);
 }
 .modalInput:focus {
-  border-color: #4f46e5;
+  border-color: var(--primary);
   outline: none;
 }
 
 /* Buttons & Inputs */
 .btnAdd {
-  background: #10b981;
-  color: #fff;
-  border: none;
   display: inline-flex;
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
+  background: var(--secondary);
+  color: #fff;
+  border: none;
   border-radius: 8px;
   font-size: 1em;
-  transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
   cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
 }
 .btnAdd:hover,
 .btnAdd:focus {
-  background: #059669;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background: darken(var(--secondary), 10%);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   outline: none;
 }
-
 .btnConfirm {
-  margin-left: auto;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: #4f46e5;
+  padding: 8px 16px;
+  background: var(--primary);
   color: #fff;
   border: none;
-  padding: 8px 16px;
   border-radius: 8px;
   font-size: 1rem;
   font-weight: 500;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
   cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+  margin-left: auto;
 }
 .btnConfirm:hover,
 .btnConfirm:focus {
-  background: #4338ca;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background: darken(var(--primary), 10%);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   outline: none;
 }
 .btnConfirm:active {
   transform: scale(0.97);
 }
-
 .btnCurrency {
-  background: transparent;
-  color: #777;
-  border: none;
-  border-radius: 12px;
-  gap: 4px;
   display: flex;
   align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  border-radius: 12px;
+  color: var(--text);
   font-size: 0.9em;
   cursor: pointer;
   margin-bottom: 32px;
-  }
-
-/* Speziell für die Add-Teilnehmer-Zeile im Manage-Modal */
-.addRow {
-  align-items: top;             /* Input & Button vertikal zentrieren */
-  padding-bottom: 8px;            /* etwas Innenabstand unten */
-  margin-bottom: 16px !important;  /* Trenner-Abstand */
-  border-bottom: 1px solid #e5e7eb;/* feine Linie als Abgrenzung */
-  gap: 12px;
 }
 
-/* Falls dein .optionRow noch kein align-items hat, stelle es hier sicher */
-.addRow,
-.addRow > * {
+/* Add-Teilnehmer-Zeile in Manage-Modal */
+.addRow {
   display: flex;
   align-items: center;
+  gap: 12px;
+  padding-bottom: 8px;
+  margin-bottom: 16px !important;
+  border-bottom: 1px solid #e5e7eb;
 }
-
-.addRow button {
-	margin-bottom: 1.2em;
-}
-
+.addRow > * { display: flex; align-items: center; }
+.addRow button { margin-bottom: 1.2em; }
 
 /* Distribution Dynamic Fields */
 .optionGrid {
@@ -549,7 +534,6 @@
   grid-template-columns: 1fr 1fr;
   gap: 8px;
   margin-bottom: 12px;
-  font-family: "Montserrat", sans-serif;
 }
 .optionLabel {
   display: flex;
@@ -560,115 +544,100 @@
   margin-bottom: 6px;
   margin-right: 10px;
 }
-.optionList select {
-  padding-right: 10px; /* verschiebt den Pfeil 10px vom rechten Rand weg */
-}
 .optionRow {
   display: flex;
-  justify-content: flex-start;
   align-items: center;
+  justify-content: flex-start;
   margin-bottom: 8px;
-  font-family: "Montserrat", sans-serif;
   font-size: 0.85em;
 }
-
-.optionRow > span:last-child {
-  margin-left: 8px;       /* Abstand zwischen Input und “%” bzw. “€” */
-}
-
 .inputSmall {
-  margin-left: auto;      /* schiebt Input(+Zeichen) nach ganz rechts */
+  width: 60px;
+  height: 16px;
+  padding: 8px;
+  margin-left: auto;
   font-size: 1.2em;
-  width: 60px;   
-  height: 16px;         /* fixe Breite – passe gern an */
-  text-align: right;      /* Zahl am rechten Rand */
-  padding: 8px;           /* zu .modalInput passend */
+  text-align: right;
 }
 
-/* RoomPage.module.css */
-
+/* RoomPage.module.css inputs */
 .inputRow {
   display: flex;
   gap: 8px;
-  margin-bottom: 16px; /* optional, Abstand nach unten */
+  margin-bottom: 16px;
 }
-
 .inputAmount {
-  flex: 55;  
+  flex: 55;
 }
-
 .inputCurrency {
-  flex: 45;   
+  flex: 45;
 }
 
-
-/* kleine Summenanzeige unter den Inputs */
-/* Standard-Summary */
+/* Kleine Summenanzeige */
 .inputSummary {
-  font-size: 0.85em;
-  text-align: right;
   margin: 8px 10px 0;
   font-family: "Montserrat", sans-serif;
+  font-size: 0.85em;
+  text-align: right;
 }
+.summaryNeutral { color: #6b7280; }
+.summaryValid { color: #10b981; }
+.summaryInvalid { color: #ef4444; }
 
-/* Neutral (grau) */
-.summaryNeutral {
-  color: #6b7280;
-}
-
-/* Valid (grün) */
-.summaryValid {
-  color: #10b981;
-}
-
-/* Invalid (rot) */
-.summaryInvalid {
-  color: #ef4444;
-}
-
-
-
-.mt4 {
-  margin-top: 16px;
-}
+/* Utility */
+.mt4 { margin-top: 16px; }
 
 /* Ablauf‐Info & Verlängerung */
 .expiryBox {
+  max-width: 480px;
   margin: 16px auto 0;
+  padding: 8px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 8px;
-  border-top: 1px solid #d1d5db;
+  border-top: 1px solid var(--chip-bg);
   text-align: center;
   font-size: 0.85rem;
-  color: #fff;
-  max-width: 480px;
 }
 .expiryInfo {
   margin-bottom: 12px;
-  font-size: 0.85rem;
-  color: #6b7280;
   line-height: 1.4;
   font-family: "Montserrat", sans-serif;
+  font-size: 0.85rem;
+  color: var(--text-acc);
 }
-
 .roomID {
   margin-top: 8px;
+  font-family: "Montserrat", sans-serif;
   font-size: 0.7rem;
   color: #6b7280;
-  font-family: "Montserrat", sans-serif;
 }
 
+/* Footer */
+.footerLogo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 32px;
+  cursor: default;
+}
+.footerImg {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+.footerText {
+  font-size: 0.85rem;
+  font-weight: 500;
+  font-family: "Montserrat", sans-serif;
+  color: var(--primary);
+}
+
+/* Responsive adjustments */
 @media (max-width: 480px) {
-  .roomContainer {
-    padding: 12px;
-  }
-  .headerContainer {
-    padding: 16px;
-    margin-bottom: 24px;
-  }
+  .roomContainer { padding: 20px; }
+  .headerContainer { margin: -12px; padding: 16px; margin-bottom: 8px; }
   .expenseCardSmall,
   .transferCard,
   .debtItem {
@@ -680,51 +649,13 @@
     padding: 8px 12px;
     font-size: 0.95rem;
   }
-  
-  .debtRow {
-  display: flex;
-  align-items: center;
-  gap: 6px; /* Abstand Icon ↔ Text */
+  .debtRow { display: flex; align-items: center; gap: 6px; }
+  .debtItem {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .debtItem .btnConfirm {
+    margin: 8px 0 0 0;
+    align-self: flex-start;
+  }
 }
-
-/* .debtItem als Spalten-Layout */
-.debtItem {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-}
-
-/* Button immer unterhalb der Zeile */
-.debtItem .btnConfirm {
-  margin-top: 8px;
-  margin-left: 0;
-  align-self: flex-start;
-}
-}
-
-
-.footerLogo {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: #000;
-  margin-top: 32px;
-  cursor: default; /* sieht aus wie Button, aber ohne Funktion */
-}
-
-
-.footerImg {
-  width: 32px;
-  height: 32px;
-  object-fit: contain;
-}
-
-.footerText {
-  font-size: 0.85rem;
-  color: #6b7280;
-  font-weight: 500;
-  color: #4338ca;
-}
-
-
-

@@ -1,5 +1,33 @@
-/* styles/globals.css */
+/* globals.css */
+
+/* reset margins/paddings */
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+/* default (light) theme vars */
 body {
-  margin: 0px;
-  font-family: 'Montserrat', sans-serif;
+  --bg: #ffffff;
+  --text: #333333;
+  --card-bg: #fafafa;
+  --modal-bg: #ffffff;
+  --primary: #0055aa;
+  --secondary: #ffaa00;
+
+  background-color: var(--bg);
+  color: var(--text);
+}
+
+/* manual dark-mode overrides */
+body.dark {
+  --bg: #1e1e1e;
+  --text: #e0e0e0;
+  --card-bg: #2a2a2a;
+  --modal-bg: #242424;
+  --primary: #4da6ff;
+  --secondary: #ffcc66;
+
+  background-color: var(--bg);
+  color: var(--text);
 }
