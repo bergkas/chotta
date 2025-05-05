@@ -1,5 +1,5 @@
 // pages/index.js
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import { supabase } from '../lib/supabase'
 import styles from '../styles/StartPages.module.css'
@@ -12,7 +12,8 @@ export default function Home() {
   const getMetaId = () =>
     typeof window !== 'undefined' ? localStorage.getItem('metaRoomId') : null
 
-  const createAndSetupMeta = async () => {
+  // 1) make createAndSetupMeta stable
+  const createAndSetupMeta = useCallback(async () => {
     setBusy(true)
     const { data: room, error } = await supabase
       .from('rooms')
@@ -29,10 +30,12 @@ export default function Home() {
 
     localStorage.setItem('metaRoomId', room.id)
     router.replace(`/setup/${room.id}`)
-  }
+  }, [router])
 
+  // 2) reuse it for the button handler
   const handleStart = createAndSetupMeta
 
+  // 3) include it in the deps of your effect
   useEffect(() => {
     if (typeof window === 'undefined') return
     const isStandalone =
@@ -47,14 +50,14 @@ export default function Home() {
         createAndSetupMeta()
       }
     }
-  }, [router])
+  }, [createAndSetupMeta])
 
   const benefits = [
     'Super simpel: Sofort nutzbar ohne Anmeldung',
     'Komplett kostenlos',
     'Beliebig viele Räume & Teilnehmer',
     'Mehrere Währungen mit automatischer Umrechnung',
-    'Formel-Editor für faire Aufteilungen (z. B. bei Essensrechnungen)'
+    'Formel-Editor für faire Aufteilungen (z. B. bei Essensrechnungen)'
   ]
 
   return (
@@ -72,13 +75,13 @@ export default function Home() {
         <div className={styles.introCard}>
           <h1 className={styles.heroTitle}>Willkommen bei Chotta 👋</h1>
           <span className={styles.heroSubtitle}>
-           The new kid in the Schulden-Splitter-Block
-         </span>
+            The new kid in the Schulden-Splitter-Block
+          </span>
           <p className={styles.heroSection}>
             Deine clevere Lösung zum Schuldenverwalten mit Freund:innen – ganz ohne Konto, ohne E-Mail, ohne Stress.
           </p>
           
-                    <div className={styles.screenshotPlaceholder}>
+          <div className={styles.screenshotPlaceholder}>
             [Platzhalter für Screenshot]
           </div>
 
@@ -87,14 +90,14 @@ export default function Home() {
             Keine Registrierung. Keine Werbung. Einfach direkt loslegen.
           </p>
 
-<ul className={styles.benefitsList}>
-  {benefits.map((text, i) => (
-    <li key={i} className={styles.benefitItem}>
-      <FaCheckCircle className={styles.benefitIcon} />
-      <span className={styles.benefitText}>{text}</span>
-    </li>
-  ))}
-</ul>
+          <ul className={styles.benefitsList}>
+            {benefits.map((text, i) => (
+              <li key={i} className={styles.benefitItem}>
+                <FaCheckCircle className={styles.benefitIcon} />
+                <span className={styles.benefitText}>{text}</span>
+              </li>
+            ))}
+          </ul>
 
           <div className={styles.screenshotPlaceholder}>
             [Platzhalter für Screenshot]

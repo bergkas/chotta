@@ -1,7 +1,7 @@
 
 /*===========================================*/
 // pages/room/[id].js
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
 
@@ -137,16 +137,22 @@ export default function Room() {
   const [isMeta, setIsMeta]             = useState(false)
   const [metaUsername, setMetaUsername] = useState('')
 
-  // --- Effects ---
   useEffect(() => {
-    if (!id) return;
-    fetchRoomName();
-    fetchParticipants();
-    fetchExpenses();
-    fetchTransfers();
-    fetchSettings();
-  }, [id]);
-
+    if (!id) return
+    fetchRoomName()
+    fetchParticipants()
+    fetchExpenses()
+    fetchTransfers()
+    fetchSettings()
+  }, [
+    id,
+    fetchRoomName,
+    fetchParticipants,
+    fetchExpenses,
+    fetchTransfers,
+    fetchSettings
+  ])
+  
   useEffect(() => {
     if (!showSettingsModal) return;
     const base = editSettings.default_currency;
@@ -157,61 +163,70 @@ export default function Room() {
 
 
   // --- Fetchers ---
-  async function fetchRoomName() {
-  const { data, error } = await supabase
-    .from('rooms')
-    .select('name, expires_at, expired')
-    .eq('id', id)
-    .single()
+  const fetchRoomName = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('rooms')
+      .select('name, expires_at, expired')
+      .eq('id', id)
+      .single()
+    if (!error && data) {
+      setRoomName(data.name)
+      setExpiresAt(new Date(data.expires_at))
+      setExpired(data.expired)
+    }
+  }, [id])
 
-  if (error) {
-    console.error('Fehler beim Laden des Raums:', error)
-    return
-  }
-  if (data) {
-    setRoomName(data.name)
-    setExpiresAt(new Date(data.expires_at))
-    setExpired(data.expired)
-  }
-}
-
-
-
-  async function fetchParticipants() {
+  const fetchParticipants = useCallback(async () => {
     const { data } = await supabase
       .from('participants')
       .select('*')
-      .eq('room_id', id);
-    if (data) setParticipants(data);
-  }
+      .eq('room_id', id)
+    if (data) setParticipants(data)
+  }, [id])
 
-  async function fetchExpenses() {
+  const fetchExpenses = useCallback(async () => {
     const { data } = await supabase
       .from('expenses')
       .select('*, expense_shares(*)')
-      .eq('room_id', id);
-    if (data) setExpenses(data);
-  }
+      .eq('room_id', id)
+    if (data) setExpenses(data)
+  }, [id])
 
-  async function fetchTransfers() {
+  const fetchTransfers = useCallback(async () => {
     const { data } = await supabase
       .from('transfers')
       .select('*')
-      .eq('room_id', id);
-    if (data) setTransfers(data);
-  }
+      .eq('room_id', id)
+    if (data) setTransfers(data)
+  }, [id])
 
-  async function fetchSettings() {
+// fetchRates als useCallback (stabil, keine externen Deps)
+  const fetchRates = useCallback(async (base, targets) => {
+    if (!base || targets.length === 0) return
+    const { data } = await supabase
+      .from('currency_rates')
+      .select('target_currency, rate')
+      .eq('base_currency', base)
+      .in('target_currency', targets)
+    if (data) {
+      const map = Object.fromEntries(data.map((r) => [r.target_currency, r.rate]))
+      setRates(map)
+    }
+  }, [])
+
+  // fetchSettings als useCallback (hört auf id und fetchRates)
+  const fetchSettings = useCallback(async () => {
     const { data, error } = await supabase
       .from('room_settings')
       .select('default_currency, extra_currencies')
       .eq('room_id', id)
-      .single();
-    if (error || !data) return;
+      .single()
+    if (error || !data) return
 
-    setSettings((s) => ({ ...s, ...data }));
-    setEditSettings(data);
-    await fetchRates(data.default_currency, Object.keys(data.extra_currencies));
+    setSettings((s) => ({ ...s, ...data }))
+    setEditSettings(data)
+    // hier rufst du now fetchRates auf
+    await fetchRates(data.default_currency, Object.keys(data.extra_currencies))
 
     const { data: latest } = await supabase
       .from('currency_rates')
@@ -220,24 +235,11 @@ export default function Room() {
       .in('target_currency', Object.keys(data.extra_currencies))
       .order('updated_at', { ascending: false })
       .limit(1)
-      .single();
+      .single()
     if (latest?.updated_at) {
-      setSettings((s) => ({ ...s, last_updated: latest.updated_at }));
+      setSettings((s) => ({ ...s, last_updated: latest.updated_at }))
     }
-  }
-
-  async function fetchRates(base, targets) {
-    if (!base || targets.length === 0) return;
-    const { data } = await supabase
-      .from('currency_rates')
-      .select('target_currency, rate')
-      .eq('base_currency', base)
-      .in('target_currency', targets);
-    if (data) {
-      const map = Object.fromEntries(data.map((r) => [r.target_currency, r.rate]));
-      setRates(map);
-    }
-  }
+  }, [id, fetchRates])
 
   // --- Helpers ---
   const formatAmount = (v) => parseFloat(v).toFixed(2);
