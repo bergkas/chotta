@@ -1,0 +1,261 @@
+/* styles/StartPages.module.css */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap');
+
+
+.theme {
+  --text: #ffffff;
+  --textSecondary: #d1d5db;
+  --background: #1f2937;
+
+  background-color: var(--background);
+  color: var(--text);
+  font-family: 'Montserrat', sans-serif;
+  min-height: 100vh;
+}
+
+.headerWrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 16px;
+  background: linear-gradient(135deg, #4f46e5, #3227B0);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+}
+
+.logo {
+  height: 32px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.hero {
+  text-align: center;
+  padding: 0.5rem;
+  color: var(--text);
+}
+
+.heroTitle {
+  font-size: 2rem;
+  font-weight: 600;
+  margin-bottom: 0.1rem;
+  color: var(--text);
+}
+
+.heroSubtitle {
+  font-size: 1.4rem;
+  color: var(--textSecondary);
+  margin-bottom: 1rem;
+}
+
+.heroText {
+  font-size: 1rem;
+  color: var(--textSecondary);
+  max-width: 600px;
+  margin: 0 auto 1rem;
+}
+
+.heroSection {
+  font-size: 1rem;
+  color: var(--textSecondary);
+  max-width: 600px;
+  margin: 0 auto 2rem;
+}
+
+.introCard {
+  background-color: #111827;
+  padding: 0.5rem 1.5rem;
+  border-radius: 12px;
+  max-width: 800px;
+  margin: 0 auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  text-align: left;
+}
+
+.benefitsList {
+  list-style: none;
+  padding: 0;
+  margin: 0 auto;
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  font-size: 0.95rem;
+}
+
+.benefitItem {
+  display: flex;
+  align-items: flex-start; /* Ausrichtung oben statt mittig */
+}
+
+.benefitIcon {
+  color: #4ade80;
+  margin-right: 0.5rem;
+  margin-top: 2px;
+  flex-shrink: 0; /* Verhindert, dass das Icon schrumpft */
+}
+
+.benefitText {
+  flex: 1; /* Nimmt den restlichen Platz ein */
+}
+
+.screenshotPlaceholder {
+  width: 100%;
+  height: 200px;
+  background-color: #1f2937;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+  font-style: italic;
+  font-size: 0.95rem;
+}
+
+.ctaButton {
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #4f46e5 0%, #3227B0 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  transition: background 0.3s ease;
+  width: 100%;
+  max-width: 400px;
+  margin: 1rem auto 0;
+}
+
+.ctaButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.formWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  max-width: 400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.inputField {
+  width: 90%;
+  padding: 0.75rem;
+  font-size: 1.1rem;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  background: #111827;
+  color: white;
+  font-family: 'Montserrat', sans-serif;
+}
+
+
+.installGuideContainer {
+  color: var(--text);
+  width: 100%;
+}
+
+
+.platformGuide {
+  margin-bottom: 2rem;
+  background: none;
+  border-radius: 12px;
+  padding: 0;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.platformGuide:last-child {
+  margin-bottom: 0;
+}
+
+.platformHeader {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
+
+.platformBadge {
+  background: #4f46e5;
+  color: white;
+  padding: 0.35rem 0.75rem;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  display: inline-block;
+}
+
+.installSteps {
+  list-style: none;
+  padding-left: 0;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.stepItem {
+  display: flex;
+  flex-direction: row;
+  align-items: left;
+  text-align: left;
+  background: rgba(96, 165, 250, 0.08);
+  border-radius: 16px;
+  padding: 0.5rem 0.5rem;
+}
+
+
+.stepNumber {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1rem;
+  margin-right: 0.5em;
+  flex-shrink: 0;
+}
+
+.stepContent {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.stepIcon {
+  color: #4f46e5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 1.5rem;
+
+}
+
+.stepText {
+  flex: 1;
+  line-height: 1.2;
+}
+
+/* Responsive Anpassungen */
+@media (max-width: 580px) {
+  .platformGuide {
+    padding: 1rem;
+  }
+  
+  .installSteps {
+    flex-direction: column;
+  }
+  
+  .stepItem {
+    padding: 1rem 0.8rem;
+  }
+}

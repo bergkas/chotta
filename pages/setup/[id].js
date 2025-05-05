@@ -1,16 +1,16 @@
 // pages/setup/[id].js
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
+import Head from 'next/head'
 import { supabase } from '../../lib/supabase'
+import styles from '../../styles/StartPages.module.css'
 
 export default function Setup() {
   const router = useRouter()
   const { id } = router.query
-
   const [username, setUsername] = useState('')
   const [saving, setSaving] = useState(false)
 
-  // Falls id mal nicht in der URL ist, holen wir sie aus dem localStorage
   useEffect(() => {
     if (!id && typeof window !== 'undefined') {
       const stored = localStorage.getItem('metaRoomId')
@@ -22,60 +22,70 @@ export default function Setup() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!username.trim()) {
-      return alert('Bitte gib einen Nutzernamen ein')
+    const name = username.trim()
+    if (!name) {
+      alert('Bitte gib einen Nutzernamen ein')
+      return
     }
+
     setSaving(true)
-    // Meta-Raum updaten: meta_username setzen und gleich auch den sichtbaren Raumnamen
-    const { error } = await supabase
-      .from('rooms')
-      .update({ meta_username: username.trim(), name: username.trim() })
-      .eq('id', id)
+    const { error } = await supabase.from('meta_rooms').insert([{ id, username: name }])
     setSaving(false)
+
     if (error) {
-      console.error(error)
+      console.error('Fehler beim Anlegen des Meta-Raums:', error)
       alert('Fehler beim Speichern des Namens. Bitte versuche es erneut.')
     } else {
-      // Weiterleitung zum Meta-Raum (wird dort begrüßt und kann Räume verwalten)
-      router.push(`/room/${id}`)
+      router.push(`/install?metaId=${id}`)
     }
   }
 
   return (
-    <main style={{
-      padding: '2rem',
-      maxWidth: '400px',
-      margin: '0 auto',
-      textAlign: 'center'
-    }}>
-      <h1>Fast geschafft!</h1>
-      <p>Wähle bitte einen Nutzernamen, unter dem du in Chotta auftreten möchtest:</p>
-      <form onSubmit={handleSubmit} style={{ marginTop: '1.5rem' }}>
-        <input
-          type="text"
-          value={username}
-          onChange={e => setUsername(e.target.value)}
-          placeholder="Dein Nutzername"
-          style={{
-            width: '100%',
-            padding: '0.75rem',
-            fontSize: '1rem',
-            marginBottom: '1rem'
-          }}
-          required
+    <div className={styles.theme}>
+      <Head>
+        <title>Chotta Setup</title>
+        <meta name="theme-color" content="#3367D6" />
+      </Head>
+
+      {/* Header */}
+      <div className={styles.headerWrapper}>
+        <img
+          src="/chotty_logo_centered_white.svg"
+          alt="Chotty Logo"
+          className={styles.logo}
         />
-        <button
-          type="submit"
-          disabled={saving}
-          style={{
-            width: '100%',
-            padding: '0.75rem',
-            fontSize: '1.1rem'
-          }}
-        >
-          {saving ? 'Speichere…' : 'Nutzernamen speichern'}
-        </button>
-      </form>
-    </main>
+      </div>
+
+      <main className={styles.hero}>
+        <div style={{
+          backgroundColor: '#111827',
+          padding: '2rem',
+          borderRadius: '12px',
+          maxWidth: '480px',
+          margin: '0 auto',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+        }}>
+          <h1 className={styles.heroTitle}>Wie dürfen wir dich nennen?</h1>
+          <p className={styles.heroSubtitle}>
+            Wähle einen Namen, mit dem dich deine Mitmenschen in Chotta sehen.
+          </p>
+
+          <form onSubmit={handleSubmit} className={styles.formWrapper}>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Dein Name oder Spitzname"
+              required
+              className={styles.inputField}
+            />
+
+            <button type="submit" disabled={saving} className={styles.ctaButton}>
+              {saving ? 'Speichere…' : 'Loslegen'}
+            </button>
+          </form>
+        </div>
+      </main>
+    </div>
   )
 }

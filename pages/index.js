@@ -1,46 +1,114 @@
 // pages/index.js
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { supabase } from '../lib/supabase'
+import styles from '../styles/StartPages.module.css'
+import { FaCheckCircle } from 'react-icons/fa'
 
 export default function Home() {
   const router = useRouter()
-  const [creating, setCreating] = useState(false)
+  const [busy, setBusy] = useState(false)
 
- async function handleStart() {
-  setCreating(true)
- // Meta-Raum anlegen und nur das Feld "id" zurückholen
- const { data, error } = await supabase
-   .from('rooms')
-   .insert([{ is_meta: true }])
-   .select('id')       // holt nur die id-Spalte
-   .single()           // unwrappt das Array
+  const getMetaId = () =>
+    typeof window !== 'undefined' ? localStorage.getItem('metaRoomId') : null
 
-  setCreating(false)
+  const createAndSetupMeta = async () => {
+    setBusy(true)
+    const { data: room, error } = await supabase
+      .from('rooms')
+      .insert([{}])
+      .select('id')
+      .single()
+    setBusy(false)
 
+    if (error || !room) {
+      console.error(error)
+      alert('Fehler bei der Einrichtung.')
+      return
+    }
 
- if (error || !data) {
-    console.error(error)
-    alert('Fehler bei der Einrichtung. Bitte versuche es erneut.')
-  } else {
-    localStorage.setItem('metaRoomId', data.id)
-    router.push(`/setup/${data.id}`)
+    localStorage.setItem('metaRoomId', room.id)
+    router.replace(`/setup/${room.id}`)
   }
-}
+
+  const handleStart = createAndSetupMeta
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const isStandalone =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      window.navigator.standalone === true
+    const metaId = getMetaId()
+
+    if (isStandalone) {
+      if (metaId) {
+        router.replace(`/meta/${metaId}`)
+      } else {
+        createAndSetupMeta()
+      }
+    }
+  }, [router])
+
+  const benefits = [
+    'Super simpel: Sofort nutzbar ohne Anmeldung',
+    'Komplett kostenlos',
+    'Beliebig viele Räume & Teilnehmer',
+    'Mehrere Währungen mit automatischer Umrechnung',
+    'Formel-Editor für faire Aufteilungen (z. B. bei Essensrechnungen)'
+  ]
+
   return (
-    <main style={{ padding: '2rem', textAlign: 'center' }}>
-      <h1>Willkommen bei Chotta</h1>
-      <p>
-        Das einfachste Schuldenmanagement – komplett ohne Anmeldung.  
-        Lege deine persönliche App an und teile Schulden mit Freunden.
-      </p>
-      <button
-        onClick={handleStart}
-        disabled={creating}
-        style={{ fontSize: '1.2rem', padding: '0.8rem 1.5rem', marginTop: '2rem' }}
-      >
-        {creating ? 'Einrichtung läuft…' : 'Chotta verwenden'}
-      </button>
-    </main>
+    <div className={styles.theme}>
+      {/* Logo Header */}
+      <div className={styles.headerWrapper}>
+        <img
+          src="/chotty_logo_centered_white.svg"
+          alt="Chotty Logo"
+          className={styles.logo}
+        />
+      </div>
+
+      <main className={styles.hero}>
+        <div className={styles.introCard}>
+          <h1 className={styles.heroTitle}>Willkommen bei Chotta 👋</h1>
+          <span className={styles.heroSubtitle}>
+           The new kid in the Schulden-Splitter-Block
+         </span>
+          <p className={styles.heroSection}>
+            Deine clevere Lösung zum Schuldenverwalten mit Freund:innen – ganz ohne Konto, ohne E-Mail, ohne Stress.
+          </p>
+          
+                    <div className={styles.screenshotPlaceholder}>
+            [Platzhalter für Screenshot]
+          </div>
+
+          <p className={styles.heroText}>
+            Chotta ist die einfachste Art, Ausgaben zu teilen und Schulden transparent zu verwalten – ideal für WGs, Reisen, Gruppen oder Alltag.
+            Keine Registrierung. Keine Werbung. Einfach direkt loslegen.
+          </p>
+
+<ul className={styles.benefitsList}>
+  {benefits.map((text, i) => (
+    <li key={i} className={styles.benefitItem}>
+      <FaCheckCircle className={styles.benefitIcon} />
+      <span className={styles.benefitText}>{text}</span>
+    </li>
+  ))}
+</ul>
+
+          <div className={styles.screenshotPlaceholder}>
+            [Platzhalter für Screenshot]
+          </div>
+
+          <button
+            onClick={handleStart}
+            disabled={busy}
+            className={styles.ctaButton}
+          >
+            {busy ? 'Bitte warten…' : 'Chotta jetzt starten'}
+          </button>
+        </div>
+      </main>
+    </div>
   )
 }

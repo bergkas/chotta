@@ -6,7 +6,7 @@ export default class MyDocument extends Document {
     return (
       <Html lang="de">
         <Head>
-          <link rel="manifest" href="/manifest.json" />
+
           <meta name="theme-color" content="#3367D6" />
           {/* optional für iOS */}
           <meta name="apple-mobile-web-app-capable" content="yes" />

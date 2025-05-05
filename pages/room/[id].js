@@ -9,7 +9,6 @@ import { supabase } from '../../lib/supabase';
 import { Parser } from 'expr-eval';
 import styles from '../../styles/RoomPage.module.css';
 
-import MetaDashboard from '../../components/MetaDashboard'
 
 import {
   FaTrashAlt,
@@ -21,7 +20,8 @@ import {
   FaMoneyBillWave,
   FaSun,
   FaMoon,
-  FaCalculator
+  FaCalculator,
+  FaShareSquare
 } from 'react-icons/fa';
 import { FaMoneyBillTransfer, FaArrowRightArrowLeft } from 'react-icons/fa6';
 
@@ -153,12 +153,14 @@ export default function Room() {
     const extras = Object.keys(editSettings.extra_currencies);
     fetchRates(base, extras);
   }, [showSettingsModal, editSettings.default_currency, editSettings.extra_currencies]);
+  
+
 
   // --- Fetchers ---
   async function fetchRoomName() {
   const { data, error } = await supabase
     .from('rooms')
-    .select('name, expires_at, expired, is_meta, meta_username')
+    .select('name, expires_at, expired')
     .eq('id', id)
     .single()
 
@@ -170,11 +172,10 @@ export default function Room() {
     setRoomName(data.name)
     setExpiresAt(new Date(data.expires_at))
     setExpired(data.expired)
-
-    setIsMeta(data.is_meta)
-    setMetaUsername(data.meta_username)
   }
 }
+
+
 
   async function fetchParticipants() {
     const { data } = await supabase
@@ -553,16 +554,7 @@ async function addExpense() {
       </div>
     );
   }
-  
-    // --- MetaRaum ---
-  if (isMeta) {
-  return (
-    <MetaDashboard
-      roomId={id}
-      username={metaUsername}
-    />
-  )
-}
+
 
   // --- Early Returns ---
   if (!id) return <div className={styles.loading}>Lade...</div>;
@@ -648,16 +640,32 @@ async function addExpense() {
                 {formatAmount(totalExpenses)} {settings.default_currency}
               </strong>
             </span>
-            <button
-              className={styles.anchorLink}
-              onClick={() =>
-                document
-                  .getElementById('optimized')
-                  ?.scrollIntoView({ behavior: 'smooth' })
-              }
-            >
-              Rückzahlungen ↓
-            </button>
+  <button
+    className={styles.anchorLink}
+    onClick={async () => {
+      const shareData = {
+        title: 'Chotty Raum',
+        text: `Tritt meinem Chotty-Raum bei! Raum-ID: ${id}`,
+      }
+
+      if (navigator.share) {
+        try {
+          await navigator.share(shareData)
+        } catch (err) {
+          alert('Teilen abgebrochen.')
+        }
+      } else {
+        try {
+          await navigator.clipboard.writeText(id)
+          alert(`Raum-ID kopiert: ${id}`)
+        } catch (err) {
+          alert('Kopieren fehlgeschlagen.')
+        }
+      }
+    }}
+  >
+    <FaShareSquare /> Raum-ID teilen
+  </button>
           </div>
         </div>
 
@@ -673,13 +681,19 @@ async function addExpense() {
   </button>
 
   <div className={styles.toolbarSpacer} />
-
+  
   <button
-    className={styles.btnCurrency}
-    onClick={() => setDarkMode(d => !d)}
-  >
-    {darkMode ? <FaSun /> : <FaMoon />} {darkMode ? 'Light' : 'Dark'}
-  </button>
+              className={styles.btnCurrency}
+              onClick={() =>
+                document
+                  .getElementById('optimized')
+                  ?.scrollIntoView({ behavior: 'smooth' })
+              }
+            >
+              Rückzahlungen ↓
+            </button>
+
+
 </div>
 
 

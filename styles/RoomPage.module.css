@@ -19,7 +19,8 @@
 
 /* Dark-mode overrides */
 .dark {
-  --bg: #1e1e1e;
+
+  --bg: #191923ff;
   --text: #fff;
   --text-acc: #ccc;
   --card-bg: #2a2a2a;
@@ -31,7 +32,6 @@
   --secondary: #4f46e5;
 }
 
-/* Automatically switch to dark vars when the user’s OS is in dark mode */
 
 
 
@@ -85,12 +85,11 @@
   text-decoration: underline;
 }
 
-/* Header */
-.headerContainer {
+/* --- Dashboard START --- */
+.roomCard {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 12px;
   padding: 20px;
   margin-bottom: 8px;
   background: linear-gradient(135deg, #4f46e5 0%, #3227B0 100%);
@@ -98,6 +97,52 @@
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
+
+.roomCard .titleRow {
+  display: flex;
+  align-items: top;
+  gap: 2px;
+  margin-bottom: 16px;
+  max-width: 100%;
+}
+
+.roomCard .participantChips .chip {
+  background: transparent;
+  padding: 3px 10px;
+  border: 1.6px solid #fff;
+  color: #fff;
+  margin-bottom: 16px;
+}
+
+.btnDarkMode {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  color: #fff;
+  font-size: 0.9em;
+  border: none;
+  cursor: pointer;
+}
+
+
+
+/* --- Dashboard ENDE --- */
+
+/* Header */
+.headerContainer {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, #4f46e5 0%, #3227B0 100%);
+  color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
 .headerContainer .participantChips .chip {
   background: transparent;
   padding: 3px 10px;
@@ -150,7 +195,7 @@
   margin-bottom: 16px; /* or whatever spacing you like */
 }
 
-/* pushes the second button to the right */
+/* push second button to the right */
 .toolbarSpacer {
   flex: 1;
 }
@@ -179,11 +224,11 @@
 .iconButton {
   display: inline-flex;
   align-items: center;
-  padding: 6px;
+  padding: 6px 8px 6px 8px;
   background: none;
   border: 1.6px solid #fff;
   border-radius: 12px;
-  font-size: 1em;
+  font-size: 0.5em;
   color: #fff;
   cursor: pointer;
   transition: opacity 0.2s;
@@ -533,6 +578,8 @@
   margin-bottom: 32px;
 }
 
+
+
 /* Add-Teilnehmer-Zeile in Manage-Modal */
 .addRow {
   display: flex;
@@ -743,7 +790,7 @@
 /* Responsive adjustments */
 @media (max-width: 480px) {
   .roomContainer { padding: 20px; }
-  .headerContainer { margin: -12px; padding: 16px; margin-bottom: 8px; }
+  .headerContainer { margin: -12px; padding: 16px; margin-bottom: 16px;}
   .expenseCardSmall,
   .transferCard,
   .debtItem {
