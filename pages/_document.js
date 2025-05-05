@@ -7,7 +7,7 @@ export default class MyDocument extends Document {
       <Html lang="de">
         <Head>
 
-          <meta name="theme-color" content="#3367D6" />
+          <meta name="theme-color" content="#4f46e5" />
           {/* optional für iOS */}
           <meta name="apple-mobile-web-app-capable" content="yes" />
           <meta name="apple-mobile-web-app-status-bar-style" content="default" />

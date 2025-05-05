@@ -136,37 +136,7 @@ export default function Room() {
   //meta rooms
   const [isMeta, setIsMeta]             = useState(false)
   const [metaUsername, setMetaUsername] = useState('')
-
-  useEffect(() => {
-    if (!id) return
-    fetchRoomName()
-    fetchParticipants()
-    fetchExpenses()
-    fetchTransfers()
-    fetchSettings()
-  }, [
-    id,
-    fetchRoomName,
-    fetchParticipants,
-    fetchExpenses,
-    fetchTransfers,
-    fetchSettings
-  ])
   
-  useEffect(() => {
-    if (!showSettingsModal) return;
-    const base = editSettings.default_currency;
-    const extras = Object.keys(editSettings.extra_currencies);
-    fetchRates(base, extras);
-  }, [
-     showSettingsModal,
-     editSettings.default_currency,
-     editSettings.extra_currencies,
-     fetchRates,
-   ]);
-  
-
-
   // --- Fetchers ---
   const fetchRoomName = useCallback(async () => {
     const { data, error } = await supabase
@@ -246,6 +216,38 @@ export default function Room() {
     }
   }, [id, fetchRates])
 
+
+  useEffect(() => {
+    if (!id) return
+    fetchRoomName()
+    fetchParticipants()
+    fetchExpenses()
+    fetchTransfers()
+    fetchSettings()
+  }, [
+    id,
+    fetchRoomName,
+    fetchParticipants,
+    fetchExpenses,
+    fetchTransfers,
+    fetchSettings
+  ])
+  
+  useEffect(() => {
+    if (!showSettingsModal) return;
+    const base = editSettings.default_currency;
+    const extras = Object.keys(editSettings.extra_currencies);
+    fetchRates(base, extras);
+  }, [
+     showSettingsModal,
+     editSettings.default_currency,
+     editSettings.extra_currencies,
+     fetchRates,
+   ]);
+  
+
+
+  
   // --- Helpers ---
   const formatAmount = (v) => parseFloat(v).toFixed(2);
   const formatDate = (dt) =>
