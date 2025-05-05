@@ -1,155 +1,46 @@
 // pages/index.js
-import { useState } from 'react';
-import { useRouter } from 'next/router';
-import { supabase } from '../lib/supabase';
-import { v4 as uuidv4 } from 'uuid';
-import { FaPlus, FaMoneyBillWave, FaTimes, FaCheck} from 'react-icons/fa';
-import { FaMoneyBillTransfer } from 'react-icons/fa6';
-import styles from '../styles/HomePage.module.css';
-import Image from 'next/image';
+import { useState } from 'react'
+import { useRouter } from 'next/router'
+import { supabase } from '../lib/supabase'
 
 export default function Home() {
-  const router = useRouter();
+  const router = useRouter()
+  const [creating, setCreating] = useState(false)
 
-  // Modal-States
-  const [showModal, setShowModal] = useState(false);
-  const [groupName, setGroupName] = useState('');
-  const [participantName, setParticipantName] = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
+ async function handleStart() {
+  setCreating(true)
+ // Meta-Raum anlegen und nur das Feld "id" zurückholen
+ const { data, error } = await supabase
+   .from('rooms')
+   .insert([{ is_meta: true }])
+   .select('id')       // holt nur die id-Spalte
+   .single()           // unwrappt das Array
 
-  // Handler zum Erstellen
-  async function handleCreateRoom() {
-    if (!groupName.trim() || !participantName.trim()) {
-      setErrorMessage('Bitte Raumname und deinen Namen eingeben.');
-      return;
-    }
+  setCreating(false)
 
-    const id = uuidv4();
-    const expiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
 
-    // Raum anlegen
-    const { error: roomError } = await supabase
-      .from('rooms')
-      .insert([{ id, name: groupName, expires_at: expiresAt.toISOString() }]);
-    if (roomError) {
-      setErrorMessage('Fehler beim Erstellen des Raums.');
-      return;
-    }
-
-    // Teilnehmer anlegen
-    const { error: partError } = await supabase
-      .from('participants')
-      .insert([{ room_id: id, name: participantName }]);
-    if (partError) {
-      setErrorMessage('Fehler beim Hinzufügen der Person.');
-      return;
-    }
-
-    // Erfolgreich → weiterleiten
-    router.push(`/room/${id}`);
+ if (error || !data) {
+    console.error(error)
+    alert('Fehler bei der Einrichtung. Bitte versuche es erneut.')
+  } else {
+    localStorage.setItem('metaRoomId', data.id)
+    router.push(`/setup/${data.id}`)
   }
-
+}
   return (
-   <div className={styles.wrapper}>
-      <div className={styles.pageContainer}>     
-<div className={styles.logo}>
-  <Image
-    src="/chotty_logo_full.svg"
-    alt="Chotty Logo"
-    width={256}
-    height={128}
-  />
-
-</div>
-      <p className={styles.subtitle}>
-        Ausgaben verwalten & teilen.<br />
-        Automatische Währungsumrechnung.<br/>
-        Optimierte Rückzahlungen über den kürzesten Weg.
+    <main style={{ padding: '2rem', textAlign: 'center' }}>
+      <h1>Willkommen bei Chotta</h1>
+      <p>
+        Das einfachste Schuldenmanagement – komplett ohne Anmeldung.  
+        Lege deine persönliche App an und teile Schulden mit Freunden.
       </p>
-
       <button
-        className={styles.createButton}
-        onClick={() => {
-          setErrorMessage('');
-          setShowModal(true);
-        }}
+        onClick={handleStart}
+        disabled={creating}
+        style={{ fontSize: '1.2rem', padding: '0.8rem 1.5rem', marginTop: '2rem' }}
       >
-        <FaPlus /> Neuen Raum erstellen
+        {creating ? 'Einrichtung läuft…' : 'Chotta verwenden'}
       </button>
-      
-      <div className={styles.infoBox}>
-		<b>Merke dir</b> nach Erstellen des Raumes <b>unbedingt die URL</b> - damit können du und deine Freunde auf den Raum zugreifen.
-      </div>
-
-	<div className={styles.textBox}>
-  	<p>
-    <FaCheck className={styles.checkIcon} /> Kostenlos & ohne Anmeldung
-  	</p>
-  	<p>
-  	<FaCheck className={styles.checkIcon} /> Währungen umrechnen
-	</p>
-  	<p>
-  	<FaCheck className={styles.checkIcon} /> Beliebig verlängerbar
-	</p>
-	</div>
-
-
-      {showModal && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modalContent}>
-            <div className={styles.modalHeader}>
-              <h3>Raum erstellen</h3>
-              <button
-                className={styles.btnClose}
-                onClick={() => setShowModal(false)}
-              >
-                <FaTimes />
-              </button>
-            </div>
-            <div className={styles.modalBody}>
-              {errorMessage && (
-                <div className={styles.errorBox}>{errorMessage}</div>
-              )}
-              <input
-                className={styles.modalInput}
-                type="text"
-                placeholder="Raumname (max. 30 Zeichen)"
-                value={groupName}
-                onChange={(e) => setGroupName(e.target.value)}
-                maxLength={30}
-              />
-              <input
-                className={styles.modalInput}
-                type="text"
-                placeholder="Dein Name (max. 14 Zeichen)"
-                value={participantName}
-                onChange={(e) => setParticipantName(e.target.value)}
-                maxLength={14}
-              />
-              <button
-                className={styles.btnAdd}
-                onClick={handleCreateRoom}
-              >
-                <FaPlus /> Raum erstellen
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-          <div className={styles.footerLogo}>
-  <Image
-    src="/logozf.svg"
-    alt="Zebrafrog Logo"
-    width={32}
-    height={32}
-  />
-  <span className={styles.footerText}>2025 Zebrafrog</span>
-</div>
-    </div>
-    
-
-</div>
-
-
-  );
+    </main>
+  )
 }

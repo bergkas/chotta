@@ -9,6 +9,8 @@ import { supabase } from '../../lib/supabase';
 import { Parser } from 'expr-eval';
 import styles from '../../styles/RoomPage.module.css';
 
+import MetaDashboard from '../../components/MetaDashboard'
+
 import {
   FaTrashAlt,
   FaPlus,
@@ -130,6 +132,10 @@ export default function Room() {
   // For delete/rename
   const [currentPart, setCurrentPart] = useState(null);
   const [renameValue, setRenameValue] = useState('');
+  
+  //meta rooms
+  const [isMeta, setIsMeta]             = useState(false)
+  const [metaUsername, setMetaUsername] = useState('')
 
   // --- Effects ---
   useEffect(() => {
@@ -150,17 +156,25 @@ export default function Room() {
 
   // --- Fetchers ---
   async function fetchRoomName() {
-    const { data } = await supabase
-      .from('rooms')
-      .select('name, expires_at, expired')
-      .eq('id', id)
-      .single();
-    if (data) {
-      setRoomName(data.name);
-      setExpiresAt(new Date(data.expires_at));
-      setExpired(data.expired);
-    }
+  const { data, error } = await supabase
+    .from('rooms')
+    .select('name, expires_at, expired, is_meta, meta_username')
+    .eq('id', id)
+    .single()
+
+  if (error) {
+    console.error('Fehler beim Laden des Raums:', error)
+    return
   }
+  if (data) {
+    setRoomName(data.name)
+    setExpiresAt(new Date(data.expires_at))
+    setExpired(data.expired)
+
+    setIsMeta(data.is_meta)
+    setMetaUsername(data.meta_username)
+  }
+}
 
   async function fetchParticipants() {
     const { data } = await supabase
@@ -539,6 +553,16 @@ async function addExpense() {
       </div>
     );
   }
+  
+    // --- MetaRaum ---
+  if (isMeta) {
+  return (
+    <MetaDashboard
+      roomId={id}
+      username={metaUsername}
+    />
+  )
+}
 
   // --- Early Returns ---
   if (!id) return <div className={styles.loading}>Lade...</div>;
@@ -549,6 +573,8 @@ async function addExpense() {
       <button className={styles.btnAdd} onClick={() => router.push('/')}>Zur Startseite</button>
     </div>
   );
+  
+
 
   // --- Render ---
   const history = [...expenses.map(e => ({ type:'expense', date:e.date, data:e })), ...transfers.map(t=>({ type:'transfer', date:t.date, data:t }))]
