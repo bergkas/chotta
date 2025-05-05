@@ -37,7 +37,7 @@ export default function Setup() {
       alert('Fehler beim Speichern des Namens. Bitte versuche es erneut.')
     } else {
       // Weiterleitung zum Meta-Raum (wird dort begrüßt und kann Räume verwalten)
-      router.push(`/${id}`)
+      router.push(`/room/${id}`)
     }
   }
 
