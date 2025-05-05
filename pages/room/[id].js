@@ -158,7 +158,12 @@ export default function Room() {
     const base = editSettings.default_currency;
     const extras = Object.keys(editSettings.extra_currencies);
     fetchRates(base, extras);
-  }, [showSettingsModal, editSettings.default_currency, editSettings.extra_currencies]);
+  }, [
+     showSettingsModal,
+     editSettings.default_currency,
+     editSettings.extra_currencies,
+     fetchRates,
+   ]);
   
 
 

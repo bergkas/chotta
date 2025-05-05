@@ -80,14 +80,14 @@ export default function Install() {
             <div className={styles.stepNumber}>2</div>
             <div className={styles.stepContent}>
               <FaPlusSquare className={styles.stepIcon} />
-              <span className={styles.stepText}>Scrolle nach unten und wähle 'Zum Home-Bildschirm'</span>
+              <span className={styles.stepText}>Scrolle nach unten und wähle Zum Home-Bildschirm</span>
             </div>
           </li>
           <li className={styles.stepItem}>
             <div className={styles.stepNumber}>3</div>
             <div className={styles.stepContent}>
               <FaCheckCircle className={styles.stepIcon} />
-              <span className={styles.stepText}>Tippe auf 'Hinzufügen' rechts oben ✨</span>
+              <span className={styles.stepText}>Tippe auf Hinzufügen rechts oben ✨</span>
             </div>
           </li>
         </ol>
@@ -111,14 +111,14 @@ export default function Install() {
             <div className={styles.stepNumber}>2</div>
             <div className={styles.stepContent}>
               <FaPlusSquare className={styles.stepIcon} />
-              <span className={styles.stepText}>Wähle 'Zum Startbildschirm hinzufügen'</span>
+              <span className={styles.stepText}>Wähle Zum Startbildschirm hinzufügen</span>
             </div>
           </li>
           <li className={styles.stepItem}>
             <div className={styles.stepNumber}>3</div>
             <div className={styles.stepContent}>
               <FaCheckCircle className={styles.stepIcon} />
-              <span className={styles.stepText}>Tippe auf 'Installieren' ✨</span>
+              <span className={styles.stepText}>Tippe auf Installieren ✨</span>
             </div>
           </li>
         </ol>

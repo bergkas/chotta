@@ -7,6 +7,7 @@ import { FaCheckCircle } from 'react-icons/fa'
 
 export default function Home() {
   const router = useRouter()
+  const { replace } = router
   const [busy, setBusy] = useState(false)
 
   const getMetaId = () =>
@@ -29,8 +30,8 @@ export default function Home() {
     }
 
     localStorage.setItem('metaRoomId', room.id)
-    router.replace(`/setup/${room.id}`)
-  }, [router])
+    replace(`/setup/${room.id}`)
+  }, [replace])
 
   // 2) reuse it for the button handler
   const handleStart = createAndSetupMeta
@@ -45,12 +46,12 @@ export default function Home() {
 
     if (isStandalone) {
       if (metaId) {
-        router.replace(`/meta/${metaId}`)
+        replace(`/meta/${metaId}`)
       } else {
         createAndSetupMeta()
       }
     }
-  }, [createAndSetupMeta])
+  }, [createAndSetupMeta, replace])
 
   const benefits = [
     'Super simpel: Sofort nutzbar ohne Anmeldung',
