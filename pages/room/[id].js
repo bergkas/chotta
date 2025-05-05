@@ -653,8 +653,8 @@ async function addExpense() {
     className={styles.anchorLink}
     onClick={async () => {
       const shareData = {
-        title: 'Chotty Raum',
-        text: `Tritt meinem Chotty-Raum bei! Raum-ID: ${id}`,
+        title: 'Chotta Raum',
+        text: `Tritt meinem chotta.me Raum bei! Raum-ID: ${id}`,
       }
 
       if (navigator.share) {
@@ -956,7 +956,8 @@ async function addExpense() {
   <div className={styles.inputRow}>
     <input
       className={`${styles.modalInput} ${styles.inputAmount}`}
-      type="number"
+      type="text"
+      inputMode="decimal"
       placeholder="Betrag"
       value={newExpenseAmount}
       onChange={e => setNewExpenseAmount(e.target.value)}
@@ -1028,7 +1029,8 @@ async function addExpense() {
             <span>{p.name}</span>
             <input
               className={`${styles.modalInput} ${styles.inputSmall}`}
-              type="number"
+              type="text"
+              inputMode="decimal"
               placeholder="%"
               value={percentages[p.id] || ''}
               onChange={e =>
@@ -1064,7 +1066,8 @@ async function addExpense() {
             <span>{p.name}</span>
             <input
               className={`${styles.modalInput} ${styles.inputSmall}`}
-              type="number"
+              type="text"
+              inputMode="decimal"
               placeholder={newExpenseCurrency}
               value={amounts[p.id] || ''}
               onChange={e =>
@@ -1339,7 +1342,7 @@ async function addExpense() {
       ? `Letzte Aktualisierung am ${new Date(
           settings.last_updated
         ).toLocaleDateString('de-DE')}.`
-      : 'Noch keine Aktualisierung erfolgt.'}
+      : ' '}
   </p>
 
   <button

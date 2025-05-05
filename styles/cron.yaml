@@ -1,3 +1,0 @@
-functions:
-  updateRates:
-    schedule: '0 12 */3 * *'
