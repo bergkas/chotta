@@ -21,7 +21,7 @@ import {
   FaSun,
   FaMoon,
   FaCalculator,
-  FaShareSquare
+  FaRegCopy
 } from 'react-icons/fa';
 import { FaMoneyBillTransfer, FaArrowRightArrowLeft } from 'react-icons/fa6';
 
@@ -136,6 +136,19 @@ export default function Room() {
   //meta rooms
   const [isMeta, setIsMeta]             = useState(false)
   const [metaUsername, setMetaUsername] = useState('')
+  
+    //check if app is installed :)
+  const [showInstallBanner, setShowInstallBanner] = useState(false)
+
+	useEffect(() => {
+  		const isStandalone =
+    	window.matchMedia('(display-mode: standalone)').matches ||
+    	window.navigator.standalone === true
+	
+  		if (!isStandalone) {
+    		setShowInstallBanner(true)
+ 		}
+	}, [])
   
   // --- Fetchers ---
   const fetchRoomName = useCallback(async () => {
@@ -587,6 +600,18 @@ async function addExpense() {
     <div className={`${styles.theme} ${darkMode ? styles.dark : ''}`}>
       {/* Dark mode toggle */}
       
+            {showInstallBanner && (
+  <div className={styles.installBanner}>
+    <strong>chotta funktioniert am besten als App!</strong>{' '}
+    <button
+      onClick={() => router.push('/')}
+      className={styles.installBannerLink}
+    >
+      Hier anmeldefrei installieren
+    </button>
+  </div>
+)}
+      
 
       <div className={styles.roomContainer}>
         {/* Header */}
@@ -649,32 +674,20 @@ async function addExpense() {
                 {formatAmount(totalExpenses)} {settings.default_currency}
               </strong>
             </span>
-  <button
-    className={styles.anchorLink}
-    onClick={async () => {
-      const shareData = {
-        title: 'Chotta Raum',
-        text: `Tritt meinem chotta.me Raum bei! Raum-ID: ${id}`,
-      }
+<button
+  className={styles.anchorLink}
+  onClick={async () => {
+    try {
+      await navigator.clipboard.writeText(id)
+      alert(`Raum-ID kopiert: ${id}`)
+    } catch (err) {
+      alert('Kopieren fehlgeschlagen.')
+    }
+  }}
+>
+  <FaRegCopy /> Raum-ID
+</button>
 
-      if (navigator.share) {
-        try {
-          await navigator.share(shareData)
-        } catch (err) {
-          alert('Teilen abgebrochen.')
-        }
-      } else {
-        try {
-          await navigator.clipboard.writeText(id)
-          alert(`Raum-ID kopiert: ${id}`)
-        } catch (err) {
-          alert('Kopieren fehlgeschlagen.')
-        }
-      }
-    }}
-  >
-    <FaShareSquare /> Raum-ID teilen
-  </button>
           </div>
         </div>
 
@@ -960,7 +973,11 @@ async function addExpense() {
       inputMode="decimal"
       placeholder="Betrag"
       value={newExpenseAmount}
-      onChange={e => setNewExpenseAmount(e.target.value)}
+      onChange={e => {
+  		 const cleanValue = e.target.value.replace(',', '.')
+ 		 setNewExpenseAmount(cleanValue)
+	  }}
+
     />
     <select
       className={`${styles.modalInput} ${styles.inputCurrency}`}
@@ -1033,12 +1050,11 @@ async function addExpense() {
               inputMode="decimal"
               placeholder="%"
               value={percentages[p.id] || ''}
-              onChange={e =>
-                setPercentages(prev => ({
-                  ...prev,
-                  [p.id]: e.target.value
-                }))
-              }
+              onChange={e => {
+  				const cleanValue = e.target.value.replace(',', '.')
+  				setNewExpenseAmount(cleanValue)
+			  }}
+
             />
             <span>%</span>
           </div>
@@ -1070,12 +1086,11 @@ async function addExpense() {
               inputMode="decimal"
               placeholder={newExpenseCurrency}
               value={amounts[p.id] || ''}
-              onChange={e =>
-                setAmounts(prev => ({
-                  ...prev,
-                  [p.id]: e.target.value
-                }))
-              }
+              onChange={e => {
+  					const cleanValue = e.target.value.replace(',', '.')
+  					setNewExpenseAmount(cleanValue)
+			  }}
+
             />
             <span>{newExpenseCurrency}</span>
           </div>
