@@ -4,6 +4,7 @@ import { useRouter } from 'next/router'
 import { supabase } from '../lib/supabase'
 import styles from '../styles/StartPages.module.css'
 import { FaCheckCircle } from 'react-icons/fa'
+import Image from 'next/image';
 
 export default function Home() {
   const router = useRouter()
@@ -74,7 +75,7 @@ export default function Home() {
 
       <main className={styles.hero}>
         <div className={styles.introCard}>
-          <h1 className={styles.heroTitle}>Willkommen bei Chotta 👋</h1>
+          <h1 className={styles.heroTitle}>Willkommen bei chotta 👋</h1>
           <span className={styles.heroSubtitle}>
             The new kid in the Schulden-Splitter-Block
           </span>
@@ -82,9 +83,13 @@ export default function Home() {
             Deine clevere Lösung zum Schuldenverwalten mit Freund:innen – ganz ohne Konto, ohne E-Mail, ohne Stress.
           </p>
           
-          <div className={styles.screenshotPlaceholder}>
-            [Platzhalter für Screenshot]
-          </div>
+
+  <img
+    src="/chotta_screenshots_2.webp"
+    alt="Chotta Screenshot"
+    className={styles.screenshotImage}
+  />
+
 
           <p className={styles.heroText}>
             Chotta ist die einfachste Art, Ausgaben zu teilen und Schulden transparent zu verwalten – ideal für WGs, Reisen, Gruppen oder Alltag.
@@ -100,10 +105,11 @@ export default function Home() {
             ))}
           </ul>
 
-          <div className={styles.screenshotPlaceholder}>
-            [Platzhalter für Screenshot]
-          </div>
-
+  <img
+    src="/chotta_screenshots_3.webp"
+    alt="Chotta Screenshot"
+    className={styles.screenshotImage}
+  />
           <button
             onClick={handleStart}
             disabled={busy}

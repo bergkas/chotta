@@ -5,12 +5,12 @@
 /* Theme wrapper – defines CSS vars scoped to this module */
 .theme {
   /* fallback light-mode vars */
-  --bg: #fff;
+  --bg: #faf9f6;
   --text: #333;
   --text-acc: #333;
-  --card-bg: #fafafa;
-  --chip-bg: #eee;
-  --modal-bg: #fff;
+  --card-bg: #f2f1ed;
+  --chip-bg: #e6e5e1;
+  --modal-bg: #faf9f6;
   --transfer-bg: #ecfdf5;
   --transfer-bg-hover: #d1fae5;
   --primary: #4f46e5;
@@ -20,14 +20,14 @@
 /* Dark-mode overrides */
 .dark {
 
-  --bg: #191923ff;
+  --bg: #191923;
   --text: #fff;
   --text-acc: #ccc;
-  --card-bg: #2a2a2a;
-  --modal-bg: #242424;
+  --card-bg: #222233;
+  --modal-bg: #222233;
   --transfer-bg: #ecfdf511;
   --transfer-bg-hover: #ecfdf533;
-  --chip-bg: #3f3f3f;
+  --chip-bg: #323247;
   --primary: #4f46e5;
   --secondary: #4f46e5;
 }
@@ -38,6 +38,7 @@
 /* Apply theme variables */
 .roomContainer {
   max-width: 480px;
+  min-height: 70vh;
   margin: 6px auto;
   padding: 32px;
   font-family: "Montserrat", sans-serif;
@@ -45,6 +46,8 @@
   background-color: var(--bg);
   border-radius: 12px;
 }
+
+
 
 /* Headings utility */
 .h2 { margin: 0 0 16px; }
@@ -56,6 +59,45 @@
   50%  { color: var(--primary); opacity: 0.9;  transform: scale(0.95); }
   100% { transform: scale(1); }
 }
+
+
+
+.inactiveBanner, .deleteBanner {
+  font-family: "Montserrat", sans-serif;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  text-align: center;
+  padding: 8px;
+  margin: 8px;
+  background: #ffc82c22; /*var(--transfer-bg);*/
+  border: 1px solid #ffc82c;
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 0.8em;
+}
+
+.deleteBanner {
+  background: #ef444422;
+  border-color: #ef4444;
+}
+
+.btnExtend {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 16px;
+  background: #10b981;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 1em;
+  cursor: pointer;
+  
+}
+
 
 /* ---------------------------------- */
 /* Zeile: Gesamtausgaben ↔ Ankerlink  */
@@ -91,12 +133,12 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  padding: 20px;
+  padding: 8px 16px 16px 16px;
   margin-bottom: 8px;
   background: linear-gradient(135deg, #4f46e5 0%, #3227B0 100%);
   color: #fff;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.25);
 }
 
 .roomCard .titleRow {
@@ -135,8 +177,8 @@
   top: 0;
   z-index: 9999;
   font-family: "Montserrat", sans-serif;
-  background: #ffc82c;
-  color: #333;
+  background: #10b981;
+  color: #fff;
   padding: 0.75rem 1rem;
   font-size: 0.95rem;
   display: flex;
@@ -153,8 +195,8 @@
   font-family: "Montserrat", sans-serif;
   background: none;
   border: none;
-  color: #333;
-  font-weight: 600;
+  color: #fff;
+  font-weight: 700;
   text-decoration: underline;
   cursor: pointer;
   padding: 0;
@@ -172,7 +214,7 @@
   background: linear-gradient(135deg, #4f46e5 0%, #3227B0 100%);
   color: #fff;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
 }
 
 .headerContainer .participantChips .chip {
@@ -198,6 +240,7 @@
   margin: 0;
   word-break: break-all;
 }
+
 .logo {
   position: absolute;
   top: -12px;
@@ -218,6 +261,16 @@
 .btnEdit:focus {
   opacity: 0.5;
   outline: none;
+}
+
+.btnEditMeta {
+  background: none;
+  border: none;
+  color: var(--text);
+  opacity: 0.5;
+  margin-top: 3px;
+  font-size: 0.35em !important;
+  cursor: pointer;
 }
 
 /* Toolbar */
@@ -289,12 +342,27 @@
   text-decoration-color: var(--primary);
   text-decoration-thickness: 0.1em;
 }
+
+.sectionHeaderDebt {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.sectionHeaderDebt h2 {
+  font-size: 1.2em;
+  font-weight: 700;
+  margin-bottom: 24px;
+  text-decoration: underline;
+  text-decoration-color: #10b981;
+  text-decoration-thickness: 0.1em;
+}
 .expenseCardSmall {
   padding: 16px;
   margin-bottom: 16px;
   background: var(--card-bg);
   border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
   transition: transform 0.1s, box-shadow 0.2s;
   color: var(--text);
 }
@@ -366,11 +434,24 @@
 	background-color: var(--chip-bg);
 }
 
+.supCurrency {
+  font-size: 0.5em;
+  vertical-align: super;
+  margin-left: -5px;
+}
+
+
 /* Icons */
 .itemIcon {
   margin-right: 8px;
   font-size: 1.2em;
   color: var(--primary);
+}
+
+.itemIconTra {
+  margin-right: 8px;
+  font-size: 1.2em;
+  color: #10b981;
 }
 
 /* Delete Button */
@@ -390,9 +471,19 @@
   outline: none;
 }
 
+/* Delete Button f. Participants */
+.btnDeleteParticipant {
+  margin-left: 0px;
+  background: none;
+  border: none;
+  color: #ef4444;
+  font-size: 1em;
+  cursor: pointer;
+}
+
 /* Transfers */
 .transferCard {
-  padding: 16px;
+  padding: 16px 8px 16px 16px;
   margin-bottom: 16px;
   background: var(--transfer-bg);
   border: 1px solid #10b981;
@@ -452,13 +543,14 @@
   background: var(--modal-bg);
 }
 .debtIcon {
-  color: var(--primary);
+  color: #10b981;
 }
 .noDebt,
 .noData {
   margin-bottom: 12px;
   font-style: italic;
   color: #6b7280;
+
 }
 
 /* Confirmation Buttons */
@@ -475,17 +567,19 @@
   color: #6b7280;
 }
 
-/* Modals */
 .modalOverlay {
   position: fixed;
   inset: 0;
   padding: 0 16px;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0, 0, 0, 0.3); /* Etwas transparenter für blur */
+  backdrop-filter: blur(4px);    /* ← hier passiert die Magie */
+  -webkit-backdrop-filter: blur(4px); /* für Safari */
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 9999;
 }
+
 .modalContent {
   background: var(--modal-bg);
   border-radius: 12px;
@@ -597,6 +691,26 @@
 .btnConfirm:active {
   transform: scale(0.97);
 }
+
+.btnConfirmDebt {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  background: #10b981;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  cursor: pointer;
+  
+
+}
+
+
+
 .btnCurrency {
   font-family: "Montserrat", sans-serif;
   display: flex;
@@ -828,7 +942,7 @@
   .expenseCardSmall,
   .transferCard,
   .debtItem {
-    padding: 10px;
+    padding: 10px 6px 10px 10px;
     margin-bottom: 16px;
   }
   .btnAdd,

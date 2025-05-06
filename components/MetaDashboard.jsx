@@ -2,8 +2,12 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import localforage from 'localforage'
 import { supabase } from '../lib/supabase'
-import { FaMoon, FaSun,  FaPlusSquare, FaSignInAlt, FaLongArrowAltRight } from 'react-icons/fa'
+import { FaMoon, FaSun,  FaPlusSquare, FaSignInAlt, FaLongArrowAltRight, FaPen } from 'react-icons/fa'
 import styles from '../styles/RoomPage.module.css'
+import Image from 'next/image';
+import Modal from '../components/Modal';
+
+
 
 function getGreeting() {
   const now = new Date()
@@ -12,9 +16,9 @@ function getGreeting() {
 
   const randomChoice = (arr) => arr[Math.floor(Math.random() * arr.length)]
 
-  if (hour < 5) return randomChoice(['Gute Nacht', 'Hallo Nachtschwärmer', 'Na du Nachteule'])
+  if (hour < 5 || hour >= 22) return randomChoice(['Gute Nacht', 'Hallo Nachtschwärmer', 'Na du Nachteule'])
   if (hour < 10) return randomChoice(['Guten Morgen', 'Moin', 'Frischen Morgen'])
-  if (hour < 14) return randomChoice(['Servus', 'Grüß dich', 'Hallo'])
+  if (hour < 14) return randomChoice(['Servus', 'Grüß dich', 'Hallo', 'Hey', 'Yo'])
   if (hour < 18) return randomChoice(['Mahlzeit', 'Guten Tag', 'Hallöchen'])
   if (hour < 22) return randomChoice(['Guten Abend', 'Nabend', 'Schönen Abend'])
   if (day === 0 || day === 6) return 'Schönes Wochenende'
@@ -27,6 +31,28 @@ export default function MetaDashboard({ roomId }) {
   const [myRooms, setMyRooms] = useState([])
   const [roomDetails, setRoomDetails] = useState({})
   const [loading, setLoading] = useState(true)
+  
+  const [showPromptModal, setShowPromptModal] = useState(false);
+  const [promptMessage, setPromptMessage] = useState('');
+  const [promptValue, setPromptValue] = useState('');
+  const [promptCallback, setPromptCallback] = useState(null);
+  
+  const [showCreateRoomModal, setShowCreateRoomModal] = useState(false);
+  const [newRoomName, setNewRoomName] = useState('');
+  const [newRoomCurrency, setNewRoomCurrency] = useState('EUR');
+
+  function openPrompt(message, defaultValue, callback) {
+	  setPromptMessage(message);
+	  setPromptValue(defaultValue);
+	  setPromptCallback(() => callback);
+	  setShowPromptModal(true);
+  }
+
+function handlePrompt() {
+  if (promptCallback) promptCallback(promptValue);
+  setShowPromptModal(false);
+}
+
 
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window === 'undefined') return false
@@ -104,25 +130,35 @@ export default function MetaDashboard({ roomId }) {
     return exps.reduce((sum, e) => sum + (e.amount || 0), 0).toFixed(2)
   }
 
-  async function handleCreateRoom() {
-    const name = prompt('Wie soll dein neuer Raum heißen?')
-    if (!name) return
+function openCreateRoomModal() {
+  setNewRoomName('');
+  setNewRoomCurrency('EUR');
+  setShowCreateRoomModal(true);
+}
 
-    const { data: newRoom, error } = await supabase
-      .from('rooms')
-      .insert([{ name }])
-      .select('id')
-      .single()
-    if (error) {
-      alert('Fehler beim Erstellen')
-      return
-    }
-
-    await supabase.from('participants').insert([
-      { room_id: newRoom.id, user_id: roomId, name: username },
-    ])
-    router.push(`/room/${newRoom.id}`)
+async function handleCreateRoom() {
+  if (!newRoomName) return;
+  const { data: newRoom, error } = await supabase
+    .from('rooms')
+    .insert([{ name: newRoomName }])
+    .select('id')
+    .single();
+  if (error) {
+    alert('Fehler beim Erstellen');
+    return;
   }
+  // Teilnehmer hinzufügen
+  await supabase.from('participants').insert([
+    { room_id: newRoom.id, user_id: roomId, name: username }
+  ]);
+  // Settings mit Standardwährung anlegen
+  await supabase.from('room_settings').insert({
+    room_id:         newRoom.id,
+    default_currency: newRoomCurrency,
+    extra_currencies: {}
+  });
+  router.push(`/room/${newRoom.id}`);
+}
 
   async function handleJoinRoom() {
     const joinId = prompt('Raum-ID zum Beitreten:')
@@ -210,17 +246,37 @@ export default function MetaDashboard({ roomId }) {
           {getGreeting()},
         </h1>
         <h2
-          style={{
-            margin: 0,
-            fontSize: '2.25rem',
-            fontWeight: 800,
-            background: 'linear-gradient(135deg, #4f46e5, #3227B0)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent'
-          }}
-        >
-          {username}
-        </h2>
+  style={{
+    margin: 0,
+    fontSize: '2.25rem',
+    fontWeight: 800,
+    background: 'linear-gradient(135deg, #716BF2, #201785)',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '0.5rem'
+  }}
+>
+  {username}
+  <button
+    className={styles.btnEditMeta}
+    onClick={() =>
+      openPrompt('Neuer Name:', username, async (v) => {
+        if (!v) return;
+        const { error } = await supabase
+          .from('meta_rooms')
+          .update({ username: v })
+          .eq('id', roomId);
+        if (!error) setUsername(v);
+        else openPrompt('Fehler beim Ändern des Namens.', v, () => {});
+      })
+    }
+  >
+    <FaPen />
+  </button>
+</h2>
+
       </div>
 
       {/* Raumliste */}
@@ -276,14 +332,82 @@ export default function MetaDashboard({ roomId }) {
 
       {/* Aktionen */}
       <div style={{ display: 'flex', justifyContent: 'center', gap: '1em', marginTop: '2.5rem' }}>
-        <button className={styles.btnAdd} onClick={handleCreateRoom}>
-          <FaPlusSquare /> Raum erstellen
-        </button>
+		<button className={styles.btnAdd} onClick={openCreateRoomModal}>
+  			<FaPlusSquare /> Raum erstellen
+		</button>
         <button className={styles.btnAdd} onClick={handleJoinRoom}>
           <FaSignInAlt /> Raum beitreten
         </button>
       </div>
+
     </main>
+    <div className={styles.expiryBox}>
+          <div className={styles.footerLogo}>
+            <Image
+              src="/logozf.svg"
+              alt="Zebrafrog Logo"
+              width={32}
+              height={32}
+            />
+            <span className={styles.footerText}>2025 Zebrafrog</span>
+          </div>
+        </div>
+        
+        <Modal
+  			isOpen={showPromptModal}
+  			onClose={() => setShowPromptModal(false)}
+  			title="Eingabe erforderlich"
+			>
+  			<p>{promptMessage}</p>
+  			<input
+   		 		className={styles.modalInput}
+    			value={promptValue}
+    			onChange={(e) => setPromptValue(e.target.value)}
+  			/>
+  			<div className={styles.confirmButtons}>
+    			<button className={styles.btnAdd} onClick={handlePrompt}>
+      				Speichern
+    			</button>
+    			<button
+      				className={styles.btnClose}
+      				onClick={() => setShowPromptModal(false)}
+    			>
+      			Abbrechen
+    			</button>
+  				</div>
+		</Modal>
+		
+		<Modal
+  isOpen={showCreateRoomModal}
+  onClose={() => setShowCreateRoomModal(false)}
+  title="Neuen Raum erstellen"
+>
+  <input
+    className={styles.modalInput}
+    placeholder="Raumname"
+    value={newRoomName}
+    onChange={e => setNewRoomName(e.target.value)}
+  />
+  <span><strong>Standardwährung:</strong></span>
+  <select
+    className={styles.modalInput}
+    value={newRoomCurrency}
+    onChange={e => setNewRoomCurrency(e.target.value)}
+  >
+    {['EUR','USD','PLN','GBP','CHF','CZK','HUF','SEK','NOK','DKK'].map(cur => (
+      <option key={cur} value={cur}>{cur}</option>
+    ))}
+  </select>
+  <p style={{fontSize: '0.7em', marginTop: '-12px'}}>Achtung, Standardwährung kann später nicht mehr geändert werden!</p>
+  <div className={styles.confirmButtons}>
+    <button className={styles.btnAdd} onClick={handleCreateRoom}>Erstellen</button>
+    <button className={styles.btnClose} onClick={() => setShowCreateRoomModal(false)}>Abbrechen</button>
   </div>
+</Modal>
+
+
+    
+  </div>
+  
 )
 }

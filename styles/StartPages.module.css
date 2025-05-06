@@ -101,18 +101,14 @@
   flex: 1; /* Nimmt den restlichen Platz ein */
 }
 
-.screenshotPlaceholder {
-  width: 100%;
-  height: 200px;
-  background-color: #1f2937;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #9ca3af;
-  font-style: italic;
-  font-size: 0.95rem;
+
+.screenshotImage {
+  display: block;
+  max-width: 100%;
+  height: auto;
 }
+
+
 
 .ctaButton {
   padding: 1rem 2rem;

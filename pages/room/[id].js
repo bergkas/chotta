@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
+import Modal from '../../components/Modal';
 
 import { supabase } from '../../lib/supabase';
 import { Parser } from 'expr-eval';
@@ -16,6 +17,8 @@ import {
   FaTimes,
   FaPen,
   FaArrowRight,
+  FaLongArrowAltRight,
+  FaLongArrowAltDown,
   FaReceipt,
   FaMoneyBillWave,
   FaSun,
@@ -24,23 +27,6 @@ import {
   FaRegCopy
 } from 'react-icons/fa';
 import { FaMoneyBillTransfer, FaArrowRightArrowLeft } from 'react-icons/fa6';
-
-function Modal({ isOpen, onClose, title, children }) {
-  if (!isOpen) return null;
-  return (
-    <div className={styles.modalOverlay}>
-      <div className={styles.modalContent}>
-        <div className={styles.modalHeader}>
-          <h3>{title}</h3>
-          <button className={styles.btnClose} onClick={onClose}>
-            <FaTimes />
-          </button>
-        </div>
-        <div className={styles.modalBody}>{children}</div>
-      </div>
-    </div>
-  );
-}
 
 export default function Room() {
   const router = useRouter();
@@ -90,6 +76,8 @@ export default function Room() {
   });
   const [editSettings, setEditSettings] = useState(settings);
   const [rates, setRates] = useState({});
+  
+  const now = Date.now()
 
   const [newName, setNewName] = useState('');
   const [manageNames, setManageNames] = useState({});
@@ -102,6 +90,10 @@ export default function Room() {
   const [selectedParticipants, setSelectedParticipants] = useState([]);
   const [percentages, setPercentages] = useState({});
   const [amounts, setAmounts] = useState({});
+  
+  const [lastActivity, setLastActivity]               = useState(null)
+  const [markedForDeletion, setMarkedForDeletion]     = useState(false)
+  const [deletionScheduledAt, setDeletionScheduledAt] = useState(null)
 
   // calculator modal state
   const [formulas, setFormulas] = useState({});
@@ -151,18 +143,33 @@ export default function Room() {
 	}, [])
   
   // --- Fetchers ---
-  const fetchRoomName = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('rooms')
-      .select('name, expires_at, expired')
-      .eq('id', id)
-      .single()
+  
+  // In deinem useCallback–Fetcher ganz oben:
+
+ const fetchRoomDetails = useCallback(async () => {
+   const { data, error } = await supabase
+     .from('rooms')
+     .select(`
+       name,
+       expired,
+       last_activity,
+       marked_for_deletion,
+       deletion_scheduled_at
+     `)
+     .eq('id', id)
+     .single()
     if (!error && data) {
-      setRoomName(data.name)
-      setExpiresAt(new Date(data.expires_at))
-      setExpired(data.expired)
+     setRoomName(data.name)
+     setExpired(data.expired)
+     setLastActivity(new Date(data.last_activity))
+     setMarkedForDeletion(data.marked_for_deletion)
+     setDeletionScheduledAt(
+       data.deletion_scheduled_at
+         ? new Date(data.deletion_scheduled_at)
+         : null
+     )
     }
-  }, [id])
+ }, [id])
 
   const fetchParticipants = useCallback(async () => {
     const { data } = await supabase
@@ -232,14 +239,14 @@ export default function Room() {
 
   useEffect(() => {
     if (!id) return
-    fetchRoomName()
+    fetchRoomDetails()
     fetchParticipants()
     fetchExpenses()
     fetchTransfers()
     fetchSettings()
   }, [
     id,
-    fetchRoomName,
+    fetchRoomDetails,
     fetchParticipants,
     fetchExpenses,
     fetchTransfers,
@@ -364,24 +371,6 @@ export default function Room() {
     fetchParticipants();
   }
 
-  // --- Room Actions ---
-  async function extendRoom() {
-    if (!expiresAt) return;
-    const now = new Date();
-    const base = expiresAt > now ? expiresAt : now;
-    const newExp = new Date(base.getTime() + 14 * 24 * 60 * 60 * 1000);
-
-    const { error } = await supabase
-      .from('rooms')
-      .update({ expires_at: newExp.toISOString(), expired: false })
-      .eq('id', id);
-
-    if (error) return openInfo('Fehler beim Verlängern.');
-    setExpiresAt(newExp);
-    openInfo('Raum wurde um 14 Tage verlängert.');
-  }
-
-
 
 // --- Expense Actions ---
 async function addExpense() {
@@ -454,6 +443,8 @@ async function addExpense() {
   if (expError || !exp) {
     return openInfo('Fehler beim Speichern der Ausgabe.');
   }
+  
+  
 
   // 6) Build shares
   const makeShare = (pid, amt, pct) => ({
@@ -509,6 +500,13 @@ async function addExpense() {
       return openInfo('Fehler beim Speichern der Anteile.');
     }
   }
+  
+  //last_activity updaten
+  await supabase
+  .from('rooms')
+  .update({ last_activity: new Date().toISOString() })
+  .eq('id', id);
+
 
   // 8) Cleanup & refresh
   setNewExpenseTitle('');
@@ -524,15 +522,39 @@ async function addExpense() {
 }
 
 
-  const deleteExpense = eid => openConfirm('Ausgabe löschen?', async () => { await supabase.from('expenses').delete().eq('id', eid); fetchExpenses(); });
+  const deleteExpense = eid => openConfirm(
+  'Ausgabe löschen?',
+  async () => {
+    await supabase.from('expenses').delete().eq('id', eid);
+    await supabase
+      .from('rooms')
+      .update({ last_activity: new Date().toISOString() })
+      .eq('id', id);
+    fetchExpenses();
+  }
+);
 
-  // --- Transfer Actions ---
-  const completeTransfer = (from, to, amount) => openConfirm(
-    `Bestätige: ${findName(from)} hat ${amount} € an ${findName(to)} überwiesen?`, async () => {
-      await supabase.from('transfers').insert([{ room_id: id, from_id: from, to_id: to, amount }]);
-      fetchTransfers(); fetchExpenses();
-    }
-  );
+
+// --- Transfer Actions ---
+const completeTransfer = (from, to, amount) => openConfirm(
+  `Bestätige: ${findName(from)} hat ${amount} € an ${findName(to)} überwiesen?`,
+  async () => {
+    // 1) Transfer anlegen
+    await supabase
+      .from('transfers')
+      .insert([{ room_id: id, from_id: from, to_id: to, amount }]);
+
+    // 2) last_activity updaten
+    await supabase
+      .from('rooms')
+      .update({ last_activity: new Date().toISOString() })
+      .eq('id', id);
+
+    // 3) Daten neu laden
+    fetchTransfers();
+    fetchExpenses();
+  }
+);
 
   const deleteTransfer = tid => openConfirm('Überweisung löschen?', async () => { await supabase.from('transfers').delete().eq('id', tid); fetchTransfers(); });
 
@@ -566,9 +588,9 @@ async function addExpense() {
           <div key={i} className={styles.debtItem}>
             <div className={styles.debtRow}>
               <FaArrowRight className={styles.debtIcon} />
-              <span><strong>{findName(e.from)}</strong> an <strong>{findName(e.to)}</strong>: {formatAmount(e.amount)} €</span>
+              <span><strong>{findName(e.from)}</strong> schuldet <strong>{findName(e.to)}</strong>: {formatAmount(e.amount)} €</span>
             </div>
-            <button className={styles.btnConfirm} onClick={() => completeTransfer(e.from,e.to,e.amount)}>
+            <button className={styles.btnConfirmDebt} onClick={() => completeTransfer(e.from,e.to,e.amount)}>
               <FaMoneyBillWave /> Begleichen
             </button>
           </div>
@@ -576,23 +598,87 @@ async function addExpense() {
       </div>
     );
   }
+  
+	const isExpired =
+    deletionScheduledAt !== null &&
+    deletionScheduledAt.getTime() < now;
+  
+async function handleExtend() {
+  const nowIso = new Date().toISOString()
+  const updates = {
+    last_activity: nowIso,
+    marked_for_deletion: false,
+    deletion_scheduled_at: null,
+  }
+  const { error } = await supabase
+    .from('rooms')
+    .update(updates)
+    .eq('id', id)
+
+  if (error) {
+    console.error('Error extending room:', error)
+    return openInfo('Fehler beim Verlängern.')
+  }
+  // Lokaler State
+  setLastActivity(new Date(nowIso))
+  setMarkedForDeletion(false)
+  setDeletionScheduledAt(null)
+  openInfo('Raum um 14 Tage verlängert.')
+}
+
+// 2) Banner berechnen
+// 1) Banner-Inhalt
+let banner = null
+if (lastActivity) {
+  const daysInactive = Math.floor((now - lastActivity.getTime()) / (1000*60*60*24))
+  if (daysInactive >= 14 && !markedForDeletion) {
+    banner = (
+      <>
+        <div>Dieser Raum scheint seit <strong>{daysInactive}</strong> Tagen inaktiv zu sein. 
+        Er wird in 14 Tagen gelöscht.{' '}</div>
+        <button onClick={handleExtend} className={styles.btnExtend}>
+          Raum verlängern <FaLongArrowAltRight />
+        </button>
+      </>
+    )
+  } else if (markedForDeletion && deletionScheduledAt) {
+    const daysLeft = Math.ceil((deletionScheduledAt.getTime() - now)/(1000*60*60*24))
+    banner = (
+      <>
+        <div>Dieser Raum wird in <strong>{daysLeft}</strong> Tagen gelöscht.{' '}</div>
+        <button onClick={handleExtend} className={styles.btnExtend}>
+          Raum verlängern <FaLongArrowAltRight />
+        </button>
+      </>
+    )
+  }
+}
 
 
   // --- Early Returns ---
   if (!id) return <div className={styles.loading}>Lade...</div>;
-  if (expired) return (
+if (isExpired) {
+  return (
     <div className={styles.roomContainer}>
       <h1>Dieser Raum ist abgelaufen ⏳</h1>
       <p>Leider kannst du ihn nicht mehr nutzen.</p>
-      <button className={styles.btnAdd} onClick={() => router.push('/')}>Zur Startseite</button>
+      <button
+        className={styles.btnAdd}
+        onClick={() => router.push('/')}
+      >
+        Zur Startseite
+      </button>
     </div>
   );
+}
   
 
 
   // --- Render ---
   const history = [...expenses.map(e => ({ type:'expense', date:e.date, data:e })), ...transfers.map(t=>({ type:'transfer', date:t.date, data:t }))]
     .sort((a,b) => new Date(b.date) - new Date(a.date));
+    
+
 
  return (
   <>
@@ -611,6 +697,13 @@ async function addExpense() {
     </button>
   </div>
 )}
+
+     {/* --- Inaktivitäts-Banner einblenden --- */}
+      {banner && (
+        <div className={markedForDeletion ? styles.deleteBanner : styles.inactiveBanner}>
+          {banner}
+        </div>
+      )}
       
 
       <div className={styles.roomContainer}>
@@ -712,7 +805,7 @@ async function addExpense() {
                   ?.scrollIntoView({ behavior: 'smooth' })
               }
             >
-              Rückzahlungen ↓
+              Rückzahlungen <FaLongArrowAltDown />
             </button>
 
 
@@ -768,7 +861,7 @@ async function addExpense() {
                       />
                       <span>
                         {item.data.original_amount.toFixed(2)}
-                        {item.data.original_currency} →{' '}
+                        {item.data.original_currency} <FaLongArrowAltRight style={{ verticalAlign: 'middle', marginBottom: '2px', fontSize: '0.5rem' }} />{' '}
                         {formatAmount(item.data.converted_amount)}{' '}
                         {settings.default_currency}
                       </span>
@@ -781,7 +874,7 @@ async function addExpense() {
                         className={styles.chip}
                       >
                         {formatAmount(s.share_amount)}{' '}
-                        {settings.default_currency}{' '}
+                        <span className={styles.supCurrency}>{settings.default_currency}</span>{' '}
                         {findName(s.participant_id)}
                         
                       </span>
@@ -793,7 +886,7 @@ async function addExpense() {
               ) : (
                 <div key={idx} className={styles.transferCard}>
                   <div className={styles.expenseHeader}>
-                    <FaMoneyBillWave className={styles.itemIcon} />
+                    <FaMoneyBillWave className={styles.itemIconTra} />
                     <h3>Überweisung</h3>
                     <span className={styles.flexSpacer} />
 					<span>
@@ -812,7 +905,7 @@ async function addExpense() {
                   </div>
                   <div className={styles.paidBy}>
                     <strong>
-                      {findName(item.data.from_id)} →{' '}
+                      {findName(item.data.from_id)} <FaLongArrowAltRight style={{ color: '#10b981', verticalAlign: 'middle', marginBottom: '2px', fontSize: '0.75rem' }} />{' '}
                       {findName(item.data.to_id)}
                     </strong>
                   </div>
@@ -827,7 +920,7 @@ async function addExpense() {
           id="optimized"
           className={styles.optimizedSection}
         >
-          <div className={styles.sectionHeader}>
+          <div className={styles.sectionHeaderDebt}>
             <h2>Optimierte Rückzahlungen</h2>
           </div>
           {renderOptimized()}
@@ -837,29 +930,8 @@ async function addExpense() {
       {/* Expiry Info */}
       {expiresAt && (
         <div className={styles.expiryBox}>
-          <p className={styles.expiryInfo}>
-            Dieser Raum ist noch{' '}
-            <strong>
-              {Math.max(
-                0,
-                Math.ceil((expiresAt - Date.now()) / (1000 * 60 * 60 * 24))
-              )}
-            </strong>{' '}
-            Tage verfügbar.
-            <br />
-            7 Tage vor Ablauf kannst du ihn hier ganz einfach verlängern.
-          </p>
-          {Math.max(
-            0,
-            Math.ceil((expiresAt - Date.now()) / (1000 * 60 * 60 * 24))
-          ) <= 7 && (
-            <button
-              className={styles.btnAdd}
-              onClick={extendRoom}
-            >
-              Raum um 14 Tage verlängern
-            </button>
-          )}
+
+
           <div className={styles.roomID}>Raum-ID: {id}</div>
           <div className={styles.footerLogo}>
             <Image
@@ -922,7 +994,7 @@ async function addExpense() {
           }
         />
         <button
-          className={styles.btnDelete}
+          className={styles.btnDeleteParticipant}
           onClick={() => handleDeleteClick(p)}
         >
           <FaTrashAlt />
@@ -1295,54 +1367,43 @@ async function addExpense() {
   onClose={() => setShowSettingsModal(false)}
   title="Währungenseinstellungen"
 >
-  <label>Standard-Währung:</label>
-  <select
-    className={styles.modalInput}
-    value={editSettings.default_currency}
-    onChange={e =>
-      setEditSettings(s => ({
-        ...s,
-        default_currency: e.target.value
-      }))
-    }
-  >
-    {['EUR','USD','PLN','GBP','CHF','CZK','HUF','SEK','NOK','DKK'].map(
-      cur => (
-        <option key={cur} value={cur}>
-          {cur}
-        </option>
-      )
-    )}
-  </select>
+<div>
+  <p style={{marginBottom: '12px'}}> <strong>Standardwährung: {' '}</strong>
+  {settings.default_currency}</p>
+</div>
 
-  <label>Zusätzliche Währungen:</label>
-  <div className={styles.optionGrid}>
-    {['EUR','USD','PLN','GBP','CHF','CZK','HUF','SEK','NOK','DKK'].map(
-      cur => (
-        <label key={cur} className={styles.optionLabel}>
-          <input
-            type="checkbox"
-            checked={!!editSettings.extra_currencies[cur]}
-            onChange={e => {
-              const extras = { ...editSettings.extra_currencies };
-              if (e.target.checked) extras[cur] = 1;
-              else delete extras[cur];
-              setEditSettings(s => ({
-                ...s,
-                extra_currencies: extras
-              }));
-            }}
-          />
-          {cur}
-        </label>
-      )
-    )}
-  </div>
+<p style={{marginBottom: '8px'}}>Zusätzliche Währungen:</p>
+<div className={styles.optionGrid}>
+  {['EUR','USD','PLN','GBP','CHF','CZK','HUF','SEK','NOK','DKK']
+    .filter(cur => cur !== settings.default_currency)    // Standardwährung rausfiltern
+    .map(cur => (
+      <label key={cur} className={styles.optionLabel}>
+        <input
+          type="checkbox"
+          checked={!!editSettings.extra_currencies[cur]}
+          onChange={e => {
+            const extras = { ...editSettings.extra_currencies };
+            if (e.target.checked) extras[cur] = 1;
+            else delete extras[cur];
+            setEditSettings(s => ({
+              ...s,
+              extra_currencies: extras
+            }));
+          }}
+        />
+        {cur}
+      </label>
+  ))}
+</div>
+
 
   <div className={styles.rateList}>
-    <h4>
-      Aktuelle Wechselkurse (1 {editSettings.default_currency} = …)
-    </h4>
+    <p>
+      <strong>Aktuelle Wechselkurse</strong> 
+    </p>
+    <p className={styles.optionRow}>
+    1 {editSettings.default_currency} =
+    </p>
     {Object.entries(rates).map(([cur, r]) => (
       <div key={cur} className={styles.optionRow}>
         <span>{r.toFixed(2)}</span>
@@ -1352,7 +1413,7 @@ async function addExpense() {
   </div>
 
   <p className={styles.rateInfoText}>
-    Wechselkurse werden automatisch alle 72 Stunden aktualisiert.​{' '}
+    Wechselkurse werden automatisch aktualisiert.​{' '}
     {settings.last_updated
       ? `Letzte Aktualisierung am ${new Date(
           settings.last_updated
@@ -1360,26 +1421,26 @@ async function addExpense() {
       : ' '}
   </p>
 
-  <button
-    className={styles.btnAdd}
-    onClick={async () => {
-      const { error } = await supabase
-        .from('room_settings')
-        .upsert({
-          room_id: id,
-          default_currency: editSettings.default_currency,
-          extra_currencies: editSettings.extra_currencies,
-          auto_update: true
-        });
-      if (error) openInfo('Fehler beim Speichern der Einstellungen.');
-      else {
-        setSettings(editSettings);
-        setShowSettingsModal(false);
-      }
-    }}
-  >
-    Speichern
-  </button>
+<button
+  className={styles.btnAdd}
+  onClick={async () => {
+    const { error } = await supabase
+      .from('room_settings')
+      .upsert({
+        room_id: id,
+        default_currency: settings.default_currency,
+        extra_currencies: editSettings.extra_currencies,
+        auto_update: true
+      });
+    if (error) openInfo('Fehler beim Speichern der Einstellungen.');
+    else {
+      setSettings(s => ({ ...s, extra_currencies: editSettings.extra_currencies }));
+      setShowSettingsModal(false);
+    }
+  }}
+>
+  Speichern
+</button>
 </Modal>
 
 {/* Calculator Modal */}
