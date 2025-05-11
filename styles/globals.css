@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* globals.css */
 
 /* Reset + Scrollbar-Hiding */
@@ -36,5 +40,19 @@ body.dark {
 
   background-color: var(--bg);
   color: var(--text);
+}
+
+/* Add smooth transition for theme changes */
+body {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.5s ease-out forwards;
 }
 

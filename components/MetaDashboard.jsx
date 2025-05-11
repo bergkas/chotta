@@ -3,11 +3,10 @@ import { useRouter } from 'next/router'
 import localforage from 'localforage'
 import { supabase } from '../lib/supabase'
 import { FaMoon, FaSun,  FaPlusSquare, FaSignInAlt, FaLongArrowAltRight, FaPen } from 'react-icons/fa'
-import styles from '../styles/RoomPage.module.css'
 import Image from 'next/image';
 import Modal from '../components/Modal';
-
-
+import { useTheme } from '../contexts/ThemeContext';
+import MetaHeaderCard from './MetaHeaderCard'
 
 function getGreeting() {
   const now = new Date()
@@ -41,71 +40,62 @@ export default function MetaDashboard({ roomId }) {
   const [newRoomName, setNewRoomName] = useState('');
   const [newRoomCurrency, setNewRoomCurrency] = useState('EUR');
 
-  function openPrompt(message, defaultValue, callback) {
-	  setPromptMessage(message);
-	  setPromptValue(defaultValue);
-	  setPromptCallback(() => callback);
-	  setShowPromptModal(true);
-  }
-
-function handlePrompt() {
-  if (promptCallback) promptCallback(promptValue);
-  setShowPromptModal(false);
-}
-
-
-  const [darkMode, setDarkMode] = useState(() => {
-    if (typeof window === 'undefined') return false
-    return window.localStorage.getItem('darkMode') !== 'false'
-  })
+  const { darkMode, setDarkMode } = useTheme();
 
   useEffect(() => {
     document.body.classList.add('theme')
   }, [])
 
   useEffect(() => {
-    if (darkMode) {
-      document.body.classList.add('dark')
-      window.localStorage.setItem('darkMode', 'true')
-    } else {
-      document.body.classList.remove('dark')
-      window.localStorage.setItem('darkMode', 'false')
-    }
-  }, [darkMode])
-
-  useEffect(() => {
     if (!roomId) return
     ;(async () => {
-      const { data: userData } = await supabase
-        .from('meta_rooms')
-        .select('username')
-        .eq('id', roomId)
-        .single()
-      if (userData) setUsername(userData.username)
+      try {
+        const { data: userData } = await supabase
+          .from('meta_rooms')
+          .select('username')
+          .eq('id', roomId)
+          .single()
+        if (userData) setUsername(userData.username)
 
-      const { data: roomData } = await supabase
-        .from('participants')
-        .select('room_id, rooms(name)')
-        .eq('user_id', roomId)
+        const { data: roomData } = await supabase
+          .from('participants')
+          .select('room_id, rooms(name)')
+          .eq('user_id', roomId)
 
-      const rooms = roomData.map((r) => ({
-        id: r.room_id,
-        name: r.rooms?.name || r.room_id,
-      }))
-      setMyRooms(rooms)
+        // Filter out any rooms with null names or IDs
+        const rooms = roomData
+          ?.filter(r => r.room_id && r.rooms?.name)
+          .map((r) => ({
+            id: r.room_id,
+            name: r.rooms.name,
+          })) || []
 
-      const allDetails = {}
-      await Promise.all(
-        rooms.map(async (room) => {
-          const [participants, expenses] = await Promise.all([
-            fetchParticipants(room.id),
-            fetchExpenses(room.id),
-          ])
-          allDetails[room.id] = { participants, expenses }
-        })
-      )
-      setRoomDetails(allDetails)
-      setLoading(false)
+        setMyRooms(rooms)
+
+        const allDetails = {}
+        await Promise.all(
+          rooms.map(async (room) => {
+            try {
+              const [participants, expenses, settings] = await Promise.all([
+                fetchParticipants(room.id),
+                fetchExpenses(room.id),
+                fetchSettings(room.id),
+              ])
+              // Only add to details if we have valid data
+              if (participants && expenses && settings) {
+                allDetails[room.id] = { participants, expenses, settings }
+              }
+            } catch (error) {
+              console.error(`Error fetching details for room ${room.id}:`, error)
+            }
+          })
+        )
+        setRoomDetails(allDetails)
+      } catch (error) {
+        console.error('Error fetching meta dashboard data:', error)
+      } finally {
+        setLoading(false)
+      }
     })()
   }, [roomId])
 
@@ -125,289 +115,327 @@ function handlePrompt() {
     return data || []
   }
 
+  async function fetchSettings(id) {
+    const { data } = await supabase
+      .from('room_settings')
+      .select('default_currency')
+      .eq('room_id', id)
+      .single()
+    return data || { default_currency: 'EUR' }
+  }
+
   function getTotal(roomId) {
     const exps = roomDetails[roomId]?.expenses || []
     return exps.reduce((sum, e) => sum + (e.amount || 0), 0).toFixed(2)
   }
 
-function openCreateRoomModal() {
-  setNewRoomName('');
-  setNewRoomCurrency('EUR');
-  setShowCreateRoomModal(true);
-}
-
-async function handleCreateRoom() {
-  if (!newRoomName) return;
-  const { data: newRoom, error } = await supabase
-    .from('rooms')
-    .insert([{ name: newRoomName }])
-    .select('id')
-    .single();
-  if (error) {
-    alert('Fehler beim Erstellen');
-    return;
+  function openCreateRoomModal() {
+    setNewRoomName('');
+    setNewRoomCurrency('EUR');
+    setShowCreateRoomModal(true);
   }
-  // Teilnehmer hinzufügen
-  await supabase.from('participants').insert([
-    { room_id: newRoom.id, user_id: roomId, name: username }
-  ]);
-  // Settings mit Standardwährung anlegen
-  await supabase.from('room_settings').insert({
-    room_id:         newRoom.id,
-    default_currency: newRoomCurrency,
-    extra_currencies: {}
-  });
-  router.push(`/room/${newRoom.id}`);
-}
+
+  async function handleCreateRoom() {
+    if (!newRoomName) return;
+    const { data: newRoom, error } = await supabase
+      .from('rooms')
+      .insert([{ name: newRoomName }])
+      .select('id')
+      .single();
+    if (error) {
+      alert('Fehler beim Erstellen');
+      return;
+    }
+    // Teilnehmer hinzufügen
+    await supabase.from('participants').insert([
+      { room_id: newRoom.id, user_id: roomId, name: username }
+    ]);
+    // Settings mit Standardwährung anlegen
+    await supabase.from('room_settings').insert({
+      room_id:         newRoom.id,
+      default_currency: newRoomCurrency,
+      extra_currencies: {}
+    });
+    router.push(`/room/${newRoom.id}`);
+  }
 
   async function handleJoinRoom() {
-    const joinId = prompt('Raum-ID zum Beitreten:')
-    if (!joinId) return
+    openPrompt('Raum-ID zum Beitreten:', '', async (joinId) => {
+      if (!joinId) return;
 
-    const { data: room, error } = await supabase
-      .from('rooms')
-      .select('id')
-      .eq('id', joinId)
-      .single()
-    if (error || !room) {
-      alert('Raum nicht gefunden')
-      return
-    }
+      const { data: room, error } = await supabase
+        .from('rooms')
+        .select('id')
+        .eq('id', joinId)
+        .single();
 
-    const { data: existing } = await supabase
-      .from('participants')
-      .select('id')
-      .eq('room_id', joinId)
-      .eq('user_id', roomId)
+      if (error || !room) {
+        openPrompt('Raum nicht gefunden. Bitte überprüfe die ID.', joinId, () => {});
+        return;
+      }
 
-    if (existing.length > 0) {
-      router.push(`/room/${joinId}`)
-      return
-    }
+      const { data: existing } = await supabase
+        .from('participants')
+        .select('id')
+        .eq('room_id', joinId)
+        .eq('user_id', roomId);
 
-    await supabase.from('participants').insert([
-      { room_id: joinId, user_id: roomId, name: username },
-    ])
-    router.push(`/room/${joinId}`)
+      if (existing?.length > 0) {
+        router.push(`/room/${joinId}`);
+        return;
+      }
+
+      const { error: joinError } = await supabase
+        .from('participants')
+        .insert([
+          { 
+            room_id: joinId, 
+            user_id: roomId, 
+            name: username 
+          }
+        ]);
+
+      if (joinError) {
+        openPrompt('Fehler beim Beitreten des Raums. Bitte versuche es erneut.', joinId, () => {});
+        return;
+      }
+
+      router.push(`/room/${joinId}`);
+    });
+  }
+
+  function openPrompt(message, defaultValue, callback) {
+    setPromptMessage(message);
+    setPromptValue(defaultValue);
+    setPromptCallback(() => callback);
+    setShowPromptModal(true);
+  }
+
+  function handlePrompt() {
+    if (promptCallback) promptCallback(promptValue);
+    setShowPromptModal(false);
   }
 
   if (loading) {
-    return <p className={styles.loading}>Lade Daten…</p>
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
+      </div>
+    )
   }
 
   return (
-  <div className={`${styles.theme} ${darkMode ? styles.dark : ''}`}>
-  
-    {/* HEADER unabhängig von .roomContainer */}
-  <div
-    style={{
-      position: 'sticky',
-	  top: 0,
-	  zIndex: 1000,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '12px 20px',
-      background: 'linear-gradient(135deg, #4f46e5, #3227B0)',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-      marginBottom: '0rem',
-      animation: 'fadeInDown 0.6s ease'
-    }}
-  >
-    <img
-      src="/chotty_logo_centered_white.svg"
-      alt="Chotty Logo"
-      style={{
-        height: '32px',
-        filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))',
-      }}
-    />
-    <button className={styles.btnDarkMode} onClick={() => setDarkMode((d) => !d)}>
-      {darkMode ? <FaSun /> : <FaMoon />} {darkMode ? 'Light' : 'Dark'}
-    </button>
-  </div>
-  
-    <main className={styles.roomContainer}>
-      
-      
-
-
-      {/* Begrüßung */}
-      <div style={{ marginBottom: '2rem' }}>
-        <h1
-          style={{
-            margin: 0,
-            fontSize: '1.75rem',
-            fontWeight: 500,
-            color: 'var(--text)',
-            lineHeight: 1.2
-          }}
-        >
-          {getGreeting()},
-        </h1>
-        <h2
-  style={{
-    margin: 0,
-    fontSize: '2.25rem',
-    fontWeight: 800,
-    background: 'linear-gradient(135deg, #716BF2, #201785)',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '0.5rem'
-  }}
->
-  {username}
-  <button
-    className={styles.btnEditMeta}
-    onClick={() =>
-      openPrompt('Neuer Name:', username, async (v) => {
-        if (!v) return;
-        const { error } = await supabase
-          .from('meta_rooms')
-          .update({ username: v })
-          .eq('id', roomId);
-        if (!error) setUsername(v);
-        else openPrompt('Fehler beim Ändern des Namens.', v, () => {});
-      })
-    }
-  >
-    <FaPen />
-  </button>
-</h2>
-
-      </div>
-
-      {/* Raumliste */}
-      {myRooms.length > 0 ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.25rem', fontWeight: 600 }}>
-            Deine Räume
-          </h3>
-          {myRooms.map((room) => {
-            const details = roomDetails[room.id]
-            if (!details) return null
-            return (
-              <div
-                key={room.id}
-                className={styles.roomCard}
-                style={{ cursor: 'pointer' }}
-                onClick={() => router.push(`/room/${room.id}`)}
-              >
-                <div className={styles.titleRow}>
-                  <h1 className={styles.roomTitle}>{room.name}</h1>
-                </div>
-
-                <div className={styles.participantChips}>
-                  {details.participants.map((p) => (
-                    <span key={p.id} className={styles.chip}>
-                      {p.name}
-                    </span>
-                  ))}
-                </div>
-
-                <div className={styles.summaryRow}>
-                  <span className={styles.totalExpenses}>
-                    Ausgaben: <strong>{getTotal(room.id)} €</strong>
-                  </span>
-				  <span
-  						style={{
-  						fontSize: '0.9em',
-    					display: 'inline-flex',
-   						alignItems: 'center',
-    					gap: '0.2rem'
-  						}}
-					>
-  						zum Raum <FaLongArrowAltRight style={{ verticalAlign: 'middle', fontSize: '1rem' }} />
-				  </span>
-                </div>
-              </div>
-            )
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+      <main className="max-w-2xl mx-auto p-4 sm:p-6">
+        <MetaHeaderCard 
+          username={username}
+          onUsernameChange={() => openPrompt('Neuer Name:', username, async (v) => {
+            if (!v) return;
+            const { error } = await supabase
+              .from('meta_rooms')
+              .update({ username: v })
+              .eq('id', roomId);
+            if (!error) setUsername(v);
+            else openPrompt('Fehler beim Ändern des Namens.', v, () => {});
           })}
-        </div>
-      ) : (
-        <p>Du bist in noch keinen Räumen. Erstelle einen neuen oder tritt einem bei!</p>
-      )}
+        />
 
-      {/* Aktionen */}
-      <div style={{ display: 'flex', justifyContent: 'center', gap: '1em', marginTop: '2.5rem' }}>
-		<button className={styles.btnAdd} onClick={openCreateRoomModal}>
-  			<FaPlusSquare /> Raum erstellen
-		</button>
-        <button className={styles.btnAdd} onClick={handleJoinRoom}>
-          <FaSignInAlt /> Raum beitreten
-        </button>
-      </div>
+        {/* Room List */}
+        {myRooms.length > 0 ? (
+          <div className="space-y-4">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+              Deine Räume
+            </h3>
+            {myRooms.map((room, index) => {
+              const details = roomDetails[room.id]
+              if (!details?.participants) return null
+              return (
+                <div
+                  key={room.id}
+                  onClick={() => router.push(`/room/${room.id}`)}
+                  className="bg-gradient-to-br from-indigo-600 via-indigo-500 to-indigo-700 rounded-xl shadow-lg p-4 relative overflow-hidden group cursor-pointer animate-fadeIn hover:shadow-xl transition-all duration-300"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  {/* Simple dot pattern background */}
+                  <div className="absolute inset-0 opacity-10 pointer-events-none">
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,#fff_1px,transparent_0)] bg-[size:16px_16px]"></div>
+                  </div>
 
-    </main>
-    <div className={styles.expiryBox}>
-          <div className={styles.footerLogo}>
-            <Image
-              src="/logozf.svg"
-              alt="Zebrafrog Logo"
-              width={32}
-              height={32}
-            />
-            <span className={styles.footerText}>2025 Zebrafrog</span>
+                  {/* Room Header */}
+                  <div className="flex items-center justify-between mb-4">
+                    <h1 className="text-xl font-bold text-white group-hover:text-indigo-50 transition-colors duration-300">
+                      {room.name}
+                    </h1>
+                    <span className="text-white/80 text-sm">
+                      {details.participants.length} {details.participants.length === 1 ? 'Person' : 'Personen'}
+                    </span>
+                  </div>
+
+                  {/* Participants */}
+                  <div className="flex flex-wrap gap-1.5 mb-4">
+                    {details.participants.map((p) => (
+                      <span
+                        key={p.id}
+                        className="px-2.5 py-1.5 bg-white/15 backdrop-blur-sm border border-white/20 rounded-full text-white text-sm"
+                      >
+                        {p.name}
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* Summary Row */}
+                  <div 
+                    className="flex items-center justify-between text-white rounded-lg p-3 relative"
+                    style={{
+                      background: 'rgba(255,255,255,0.12)',
+                      boxShadow: 'inset 0 1px 1px rgba(255, 255, 255, 0.1)'
+                    }}
+                  >
+                    {/* Simple gradient accent */}
+                    <div 
+                      className="absolute inset-0 opacity-30"
+                      style={{
+                        background: 'linear-gradient(to bottom, rgba(255,255,255,0.2) 0%, transparent 100%)',
+                        borderRadius: '0.5rem',
+                        zIndex: -1
+                      }}
+                    />
+                    
+                    <div className="flex flex-col">
+                      <span className="text-sm text-white/80">Ausgaben</span>
+                      <strong className="text-base">
+                        {getTotal(room.id)} {details.settings.default_currency}
+                      </strong>
+                    </div>
+                    
+                    <span className="flex items-center gap-1 text-white/90 group-hover:text-white transition-colors duration-300">
+                      zum Raum <FaLongArrowAltRight className="transform group-hover:translate-x-1 transition-transform duration-300" />
+                    </span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-12 animate-fadeIn">
+            <div className="w-20 h-20 mx-auto mb-4 text-indigo-400 dark:text-indigo-500 animate-bounce">
+              <FaPlusSquare className="w-full h-full" />
+            </div>
+            <p className="text-gray-500 dark:text-gray-400 mb-6">
+              Du bist in noch keinen Räumen. Erstelle einen neuen oder tritt einem bei!
+            </p>
+            <div className="flex flex-col sm:flex-row justify-center gap-4">
+              <button
+                onClick={openCreateRoomModal}
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-xl hover:from-indigo-500 hover:to-indigo-600 transition-all duration-300 shadow-lg hover:shadow-xl"
+              >
+                <FaPlusSquare className="animate-pulse" /> Raum erstellen
+              </button>
+              <button
+                onClick={handleJoinRoom}
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300 shadow-lg hover:shadow-xl"
+              >
+                <FaSignInAlt /> Raum beitreten
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Action Buttons - Only show if rooms exist */}
+        {myRooms.length > 0 && (
+          <div className="flex flex-col sm:flex-row justify-center gap-4 mt-10">
+            <button
+              onClick={openCreateRoomModal}
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-xl hover:from-indigo-500 hover:to-indigo-600 transition-all duration-300 shadow-lg hover:shadow-xl"
+            >
+              <FaPlusSquare className="animate-pulse" /> Raum erstellen
+            </button>
+            <button
+              onClick={handleJoinRoom}
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300 shadow-lg hover:shadow-xl"
+            >
+              <FaSignInAlt /> Raum beitreten
+            </button>
+          </div>
+        )}
+      </main>
+
+
+      {/* Modals */}
+      <Modal
+        isOpen={showPromptModal}
+        onClose={() => setShowPromptModal(false)}
+        title="Eingabe erforderlich"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-600 dark:text-gray-300">{promptMessage}</p>
+          <input
+            className="w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+            value={promptValue}
+            onChange={(e) => setPromptValue(e.target.value)}
+          />
+          <div className="flex justify-end gap-2">
+            <button
+              className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white transition-colors"
+              onClick={() => setShowPromptModal(false)}
+            >
+              Abbrechen
+            </button>
+            <button
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              onClick={handlePrompt}
+            >
+              Speichern
+            </button>
           </div>
         </div>
-        
-        <Modal
-  			isOpen={showPromptModal}
-  			onClose={() => setShowPromptModal(false)}
-  			title="Eingabe erforderlich"
-			>
-  			<p>{promptMessage}</p>
-  			<input
-   		 		className={styles.modalInput}
-    			value={promptValue}
-    			onChange={(e) => setPromptValue(e.target.value)}
-  			/>
-  			<div className={styles.confirmButtons}>
-    			<button className={styles.btnAdd} onClick={handlePrompt}>
-      				Speichern
-    			</button>
-    			<button
-      				className={styles.btnClose}
-      				onClick={() => setShowPromptModal(false)}
-    			>
-      			Abbrechen
-    			</button>
-  				</div>
-		</Modal>
-		
-		<Modal
-  isOpen={showCreateRoomModal}
-  onClose={() => setShowCreateRoomModal(false)}
-  title="Neuen Raum erstellen"
->
-  <input
-    className={styles.modalInput}
-    placeholder="Raumname"
-    value={newRoomName}
-    onChange={e => setNewRoomName(e.target.value)}
-  />
-  <span><strong>Standardwährung:</strong></span>
-  <select
-    className={styles.modalInput}
-    value={newRoomCurrency}
-    onChange={e => setNewRoomCurrency(e.target.value)}
-  >
-    {['EUR','USD','PLN','GBP','CHF','CZK','HUF','SEK','NOK','DKK'].map(cur => (
-      <option key={cur} value={cur}>{cur}</option>
-    ))}
-  </select>
-  <p style={{fontSize: '0.7em', marginTop: '-12px'}}>Achtung, Standardwährung kann später nicht mehr geändert werden!</p>
-  <div className={styles.confirmButtons}>
-    <button className={styles.btnAdd} onClick={handleCreateRoom}>Erstellen</button>
-    <button className={styles.btnClose} onClick={() => setShowCreateRoomModal(false)}>Abbrechen</button>
-  </div>
-</Modal>
+      </Modal>
 
-
-    
-  </div>
-  
-)
+      <Modal
+        isOpen={showCreateRoomModal}
+        onClose={() => setShowCreateRoomModal(false)}
+        title="Neuen Raum erstellen"
+      >
+        <div className="space-y-4">
+          <input
+            className="w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+            placeholder="Raumname"
+            value={newRoomName}
+            onChange={e => setNewRoomName(e.target.value)}
+          />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Standardwährung
+            </label>
+            <select
+              className="w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+              value={newRoomCurrency}
+              onChange={e => setNewRoomCurrency(e.target.value)}
+            >
+              {['EUR','USD','PLN','GBP','CHF','CZK','HUF','SEK','NOK','DKK'].map(cur => (
+                <option key={cur} value={cur}>{cur}</option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Achtung, Standardwährung kann später nicht mehr geändert werden!
+            </p>
+          </div>
+          <div className="flex justify-end gap-2">
+            <button
+              className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white transition-colors"
+              onClick={() => setShowCreateRoomModal(false)}
+            >
+              Abbrechen
+            </button>
+            <button
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              onClick={handleCreateRoom}
+            >
+              Erstellen
+            </button>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  )
 }

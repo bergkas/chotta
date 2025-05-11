@@ -1,14 +1,16 @@
-
 /*===========================================*/
 // pages/room/[id].js
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
 import Modal from '../../components/Modal';
+import PageLayout from '../../components/PageLayout';
+import HeaderCard from '../../components/HeaderCard';
+import ExpensesAndSettlements from '../../components/ExpensesAndSettlements';
 
 import { supabase } from '../../lib/supabase';
 import { Parser } from 'expr-eval';
-import styles from '../../styles/RoomPage.module.css';
+
 
 
 import {
@@ -24,7 +26,8 @@ import {
   FaSun,
   FaMoon,
   FaCalculator,
-  FaRegCopy
+  FaRegCopy,
+  FaChartBar
 } from 'react-icons/fa';
 import { FaMoneyBillTransfer, FaArrowRightArrowLeft } from 'react-icons/fa6';
 
@@ -581,18 +584,58 @@ const completeTransfer = (from, to, amount) => openConfirm(
 
   function renderOptimized() {
     const list = optimize();
-    if (!list.length) return <p className={styles.noDebt}>Keine offenen Schulden 🎉</p>;
+    if (!list.length) {
+      return (
+        <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-6 text-center">
+          <div className="inline-flex items-center justify-center w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-full mb-4">
+            <FaMoneyBillWave className="text-2xl text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <p className="text-emerald-800 dark:text-emerald-200 font-medium">
+            Keine offenen Schulden 🎉
+          </p>
+          <p className="text-sm text-emerald-600 dark:text-emerald-400 mt-1">
+            Alle Ausgaben sind bereits ausgeglichen
+          </p>
+        </div>
+      );
+    }
+
     return (
-      <div className={styles.debtContainer}>
-        {list.map((e,i) => (
-          <div key={i} className={styles.debtItem}>
-            <div className={styles.debtRow}>
-              <FaArrowRight className={styles.debtIcon} />
-              <span><strong>{findName(e.from)}</strong> schuldet <strong>{findName(e.to)}</strong>: {formatAmount(e.amount)} €</span>
+      <div className="space-y-3">
+        {list.map((e, i) => (
+          <div
+            key={i}
+            className="bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden"
+          >
+            <div className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
+                    <FaMoneyBillTransfer className="text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <div>
+                    <div className="font-medium text-gray-900 dark:text-white">
+                      {findName(e.from)} → {findName(e.to)}
+                    </div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                      {formatDate(new Date())}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-lg font-semibold text-gray-900 dark:text-white">
+                    {formatAmount(e.amount)} {settings.default_currency}
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => completeTransfer(e.from, e.to, e.amount)}
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+              >
+                <FaMoneyBillWave />
+                Begleichen
+              </button>
             </div>
-            <button className={styles.btnConfirmDebt} onClick={() => completeTransfer(e.from,e.to,e.amount)}>
-              <FaMoneyBillWave /> Begleichen
-            </button>
           </div>
         ))}
       </div>
@@ -656,21 +699,30 @@ if (lastActivity) {
 
 
   // --- Early Returns ---
-  if (!id) return <div className={styles.loading}>Lade...</div>;
-if (isExpired) {
-  return (
-    <div className={styles.roomContainer}>
-      <h1>Dieser Raum ist abgelaufen ⏳</h1>
-      <p>Leider kannst du ihn nicht mehr nutzen.</p>
-      <button
-        className={styles.btnAdd}
-        onClick={() => router.push('/')}
-      >
-        Zur Startseite
-      </button>
-    </div>
-  );
-}
+  if (!id) return <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
+  </div>;
+
+  if (isExpired) {
+    return (
+      <PageLayout showBack={false}>
+        <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 text-center">
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+            Dieser Raum ist abgelaufen ⏳
+          </h1>
+          <p className="text-gray-600 dark:text-gray-300 mb-6">
+            Leider kannst du ihn nicht mehr nutzen.
+          </p>
+          <button
+            onClick={() => router.push('/')}
+            className="w-full inline-flex items-center justify-center px-6 py-3 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+          >
+            Zur Startseite
+          </button>
+        </div>
+      </PageLayout>
+    );
+  }
   
 
 
@@ -681,818 +733,649 @@ if (isExpired) {
 
 
  return (
-  <>
-    {/* Theme wrapper: applies light or dark CSS variables */}
-    <div className={`${styles.theme} ${darkMode ? styles.dark : ''}`}>
-      {/* Dark mode toggle */}
-      
-            {showInstallBanner && (
-  <div className={styles.installBanner}>
-    <strong>chotta funktioniert am besten als App!</strong>{' '}
-    <button
-      onClick={() => router.push('/')}
-      className={styles.installBannerLink}
-    >
-      Hier anmeldefrei installieren
-    </button>
-  </div>
-)}
-
-     {/* --- Inaktivitäts-Banner einblenden --- */}
-      {banner && (
-        <div className={markedForDeletion ? styles.deleteBanner : styles.inactiveBanner}>
-          {banner}
+  <PageLayout>
+    {/* Inactivity Banner */}
+    {banner && (
+      <div className={`px-4 py-3 ${markedForDeletion ? 'bg-red-100 dark:bg-red-900/30' : 'bg-amber-100 dark:bg-amber-900/30'}`}>
+        <div className="max-w-2xl mx-auto flex items-center justify-between">
+          <div className="text-gray-800 dark:text-gray-200">
+            {banner}
+          </div>
+          <button
+            onClick={handleExtend}
+            className="inline-flex items-center px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
+          >
+            Raum verlängern <FaLongArrowAltRight className="ml-2" />
+          </button>
         </div>
-      )}
-      
+      </div>
+    )}
 
-      <div className={styles.roomContainer}>
-        {/* Header */}
-        <div className={styles.headerContainer}>
-          <div className={styles.logo}>
-            <Image
-              src="/chotty_logo_full_white.svg"
-              alt="Chotty Logo"
-              width={96}
-              height={64}
-            />
-          </div>
-          <div className={styles.titleRow}>
-            <h1 className={styles.roomTitle}>
-              {roomName}
-              <button
-                className={styles.btnEdit}
-                onClick={() =>
-                  openPrompt(
-                    'Neuer Raumname:',
-                    roomName,
-                    async v => {
-                      if (!v) return;
-                      const { error } = await supabase
-                        .from('rooms')
-                        .update({ name: v })
-                        .eq('id', id);
-                      if (!error) setRoomName(v);
-                      else openInfo('Fehler beim Ändern des Raumnamens.');
-                    }
-                  )
-                }
-              >
-                <FaPen />
-              </button>
-            </h1>
-          </div>
-          <div className={styles.participantChips}>
-            {participants.map(p => (
-              <span key={p.id} className={styles.chip}>
-                {p.name}
-              </span>
-            ))}
-            <button
-              className={styles.iconButton}
-              onClick={() => {
-                setManageNames(
-                  Object.fromEntries(participants.map(p => [p.id, p.name]))
-                );
-                setShowManageModal(true);
-              }}
-            >
-              <FaPlus />
-            </button>
-          </div>
-          <div className={styles.summaryRow}>
-            <span className={styles.totalExpenses}>
-              Ausgaben:{' '}
-              <strong>
-                {formatAmount(totalExpenses)} {settings.default_currency}
-              </strong>
-            </span>
-<button
-  className={styles.anchorLink}
-  onClick={async () => {
-    try {
-      await navigator.clipboard.writeText(id)
-      alert(`Raum-ID kopiert: ${id}`)
-    } catch (err) {
-      alert('Kopieren fehlgeschlagen.')
-    }
-  }}
->
-  <FaRegCopy /> Raum-ID
-</button>
+    {/* Main Content */}
+    <div className="max-w-2xl mx-auto p-4 sm:p-6">
+      <HeaderCard
+        roomName={roomName}
+        participants={participants}
+        totalExpenses={totalExpenses}
+        settings={settings}
+        id={id}
+        setRoomName={setRoomName}
+        openPrompt={openPrompt}
+        openInfo={openInfo}
+        setManageNames={setManageNames}
+        setShowManageModal={setShowManageModal}
+        formatAmount={formatAmount}
+      />
 
-          </div>
-        </div>
-
-<div className={styles.toolbar}>
-  <button
-    className={styles.btnCurrency}
-    onClick={() => {
-      setEditSettings({ ...settings });
-      setShowSettingsModal(true);
-    }}
-  >
-    <FaArrowRightArrowLeft /> Währungen
-  </button>
-
-  <div className={styles.toolbarSpacer} />
-  
-  <button
-              className={styles.btnCurrency}
-              onClick={() =>
-                document
-                  .getElementById('optimized')
-                  ?.scrollIntoView({ behavior: 'smooth' })
-              }
-            >
-              Rückzahlungen <FaLongArrowAltDown />
-            </button>
-
-
-</div>
-
-
-        {/* Expenses History */}
-        <section className={styles.expensesSection}>
-          <div className={styles.sectionHeader}>
-            <h2>Ausgabenverlauf</h2>
-            <button
-              className={styles.btnConfirm}
-              onClick={() => setShowExpenseModal(true)}
-            >
-              Hinzufügen <FaPlus />
-            </button>
-          </div>
-          {history.length === 0 ? (
-            <p className={styles.noData}>Keine Einträge.</p>
-          ) : (
-            history.map((item, idx) =>
-              item.type === 'expense' ? (
-                <div key={idx} className={styles.expenseCardSmall}>
-                  <div className={styles.expenseHeader}>
-                    <FaReceipt className={styles.itemIcon} />
-                    <h3>{item.data.title} </h3>
-             
-                    <span className={styles.flexSpacer} />
-					<span>
-						{item.data.original_amount.toFixed(2)}
-						<sup className={styles.currency}>{item.data.original_currency}</sup>
-					</span>
-                    <button
-                      className={styles.btnDelete}
-                      onClick={() => deleteExpense(item.data.id)}
-                    >
-                      <FaTrashAlt />
-                    </button>
-
-                    
-                  </div>
-                  <div className={styles.dateTime}>
-                    {formatDate(item.data.date)}
-                  </div>
-                  <div className={styles.paidBy}>
-                    Bezahlt von <strong>{findName(item.data.paid_by)}</strong>
-                  </div>
-                  {item.data.original_currency !==
-                    settings.default_currency && (
-                    <div className={styles.currencyInfo}>
-                      <FaArrowRightArrowLeft
-                        className={styles.rotateIcon}
-                      />
-                      <span>
-                        {item.data.original_amount.toFixed(2)}
-                        {item.data.original_currency} <FaLongArrowAltRight style={{ verticalAlign: 'middle', marginBottom: '2px', fontSize: '0.5rem' }} />{' '}
-                        {formatAmount(item.data.converted_amount)}{' '}
-                        {settings.default_currency}
-                      </span>
-                    </div>
-                  )}
-                  <div className={styles.shareChips}>
-                    {item.data.expense_shares?.map(s => (
-                      <span
-                        key={s.participant_id}
-                        className={styles.chip}
-                      >
-                        {formatAmount(s.share_amount)}{' '}
-                        <span className={styles.supCurrency}>{settings.default_currency}</span>{' '}
-                        {findName(s.participant_id)}
-                        
-                      </span>
-                      
-                      
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div key={idx} className={styles.transferCard}>
-                  <div className={styles.expenseHeader}>
-                    <FaMoneyBillWave className={styles.itemIconTra} />
-                    <h3>Überweisung</h3>
-                    <span className={styles.flexSpacer} />
-					<span>
-						{formatAmount(item.data.amount)}
-						<sup className={styles.currency}>{settings.default_currency}</sup>
-					</span>
-                    <button
-                      className={styles.btnDelete}
-                      onClick={() => deleteTransfer(item.data.id)}
-                    >
-                      <FaTrashAlt />
-                    </button>
-                  </div>
-                  <div className={styles.dateTime}>
-                    {formatDate(item.data.date)}
-                  </div>
-                  <div className={styles.paidBy}>
-                    <strong>
-                      {findName(item.data.from_id)} <FaLongArrowAltRight style={{ color: '#10b981', verticalAlign: 'middle', marginBottom: '2px', fontSize: '0.75rem' }} />{' '}
-                      {findName(item.data.to_id)}
-                    </strong>
-                  </div>
-                </div>
-              )
-            )
-          )}
-        </section>
-
-        {/* Optimized Settlements */}
-        <section
-          id="optimized"
-          className={styles.optimizedSection}
+      {/* Toolbar */}
+      <div className="flex items-stretch gap-2 mb-6 mx-1.5">
+        <button
+          onClick={() => {
+            setEditSettings({ ...settings });
+            setShowSettingsModal(true);
+          }}
+          className="text-sm inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-md transition-shadow whitespace-nowrap"
         >
-          <div className={styles.sectionHeaderDebt}>
-            <h2>Optimierte Rückzahlungen</h2>
-          </div>
-          {renderOptimized()}
-        </section>
+          <FaArrowRightArrowLeft /> Währungen
+        </button>
+
+        <button
+          onClick={() => router.push(`/room/${id}/stats`)}
+          className="text-sm flex items-center justify-center p-2 bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-md transition-shadow flex-1"
+        >
+          <FaChartBar className="text-gray-600 dark:text-gray-300" />
+        </button>
+
+        <button
+          onClick={() => document.getElementById('optimized')?.scrollIntoView({ behavior: 'smooth' })}
+          className="text-sm inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-md transition-shadow whitespace-nowrap"
+        >
+          Rückzahlungen <FaLongArrowAltDown />
+        </button>
       </div>
 
-      {/* Expiry Info */}
-      {expiresAt && (
-        <div className={styles.expiryBox}>
+      {/* Expenses and Settlements */}
+      <ExpensesAndSettlements
+        history={history}
+        setShowExpenseModal={setShowExpenseModal}
+        deleteExpense={deleteExpense}
+        deleteTransfer={deleteTransfer}
+        formatDate={formatDate}
+        findName={findName}
+        formatAmount={formatAmount}
+        settings={settings}
+        optimize={optimize}
+        completeTransfer={completeTransfer}
+      />
+    </div>
 
-
-          <div className={styles.roomID}>Raum-ID: {id}</div>
-          <div className={styles.footerLogo}>
+    {/* Expiry Info */}
+    {expiresAt && (
+      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-4">
+        <div className="max-w-2xl mx-auto flex items-center justify-between">
+          <div className="text-sm text-gray-500 dark:text-gray-400">
+            Raum-ID: {id}
+          </div>
+          <div className="flex items-center gap-2">
             <Image
               src="/logozf.svg"
               alt="Zebrafrog Logo"
               width={32}
               height={32}
             />
-            <span className={styles.footerText}>2025 Zebrafrog</span>
+            <span className="text-sm text-gray-500 dark:text-gray-400">2025 Zebrafrog</span>
           </div>
         </div>
-      )}
+      </div>
+    )}
 
-{/* ——— ALL MODALS BELOW ——— */}
+    {/* ——— ALL MODALS BELOW ——— */}
 
-{/* 1) Add Participant */}
-<Modal
-  isOpen={showParticipantModal}
-  onClose={() => setShowParticipantModal(false)}
-  title="Person hinzufügen"
->
-  <input
-    className={styles.modalInput}
-    placeholder="Name"
-    value={newName}
-    maxLength={14}
-    onChange={e => setNewName(e.target.value)}
-  />
-  <button className={styles.btnAdd} onClick={addParticipant}>
-    <FaPlus /> Hinzufügen
-  </button>
-</Modal>
-
-{/* 2) Manage Participants */}
-<Modal
-  isOpen={showManageModal}
-  onClose={() => setShowManageModal(false)}
-  title="Personen verwalten"
->
-  <div className={`${styles.optionRow} ${styles.addRow}`}>
-    <input
-      className={styles.modalInput}
-      placeholder="Neue Person hinzufügen"
-      value={newName}
-      maxLength={14}
-      onChange={e => setNewName(e.target.value)}
-    />
-    <button className={styles.btnAdd} onClick={addParticipant}>
-      <FaPlus />
-    </button>
-  </div>
-  <div className={styles.optionList}>
-    {participants.map(p => (
-      <div key={p.id} className={styles.optionRow}>
+    {/* 1) Add Participant */}
+    <Modal
+      isOpen={showParticipantModal}
+      onClose={() => setShowParticipantModal(false)}
+      title="Person hinzufügen"
+    >
+      <div className="space-y-4">
         <input
-          className={styles.modalInput}
-          value={manageNames[p.id] || ''}
-          onChange={e =>
-            setManageNames(m => ({ ...m, [p.id]: e.target.value }))
-          }
+          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          placeholder="Name"
+          value={newName}
+          maxLength={14}
+          onChange={e => setNewName(e.target.value)}
         />
-        <button
-          className={styles.btnDeleteParticipant}
-          onClick={() => handleDeleteClick(p)}
+        <button 
+          onClick={addParticipant}
+          className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
         >
-          <FaTrashAlt />
+          <FaPlus /> Hinzufügen
         </button>
       </div>
-    ))}
-  </div>
-  <div style={{ textAlign: 'right', marginTop: 16 }}>
-    <button
-      className={styles.btnAdd}
-      onClick={async () => {
-        await Promise.all(
-          Object.entries(manageNames).map(async ([pid, name]) => {
-            const orig = participants.find(x => x.id === pid)?.name;
-            if (name && orig && name !== orig) {
-              await supabase
-                .from('participants')
-                .update({ name })
-                .eq('id', pid);
-            }
-          })
-        );
-        fetchParticipants();
-        setShowManageModal(false);
-      }}
+    </Modal>
+
+    {/* 2) Manage Participants */}
+    <Modal
+      isOpen={showManageModal}
+      onClose={() => setShowManageModal(false)}
+      title="Personen verwalten"
     >
-      Speichern
-    </button>
-  </div>
-</Modal>
-
-{/* 3) New Expense */}
-<Modal
-  isOpen={showExpenseModal}
-  onClose={() => setShowExpenseModal(false)}
-  title="Neue Ausgabe"
->
-  <input
-    className={styles.modalInput}
-    placeholder="Titel"
-    value={newExpenseTitle}
-    onChange={e => setNewExpenseTitle(e.target.value)}
-  />
-  <div className={styles.inputRow}>
-    <input
-      className={`${styles.modalInput} ${styles.inputAmount}`}
-      type="text"
-      inputMode="decimal"
-      placeholder="Betrag"
-      value={newExpenseAmount}
-      onChange={e => {
-  		 const cleanValue = e.target.value.replace(',', '.')
- 		 setNewExpenseAmount(cleanValue)
-	  }}
-
-    />
-    <select
-      className={`${styles.modalInput} ${styles.inputCurrency}`}
-      value={newExpenseCurrency}
-      onChange={e => setNewExpenseCurrency(e.target.value)}
-    >
-      <option value={settings.default_currency}>
-        {settings.default_currency}
-      </option>
-      {Object.keys(settings.extra_currencies).map(cur => (
-        <option key={cur} value={cur}>
-          {cur}
-        </option>
-      ))}
-    </select>
-  </div>
-  <select
-    className={styles.modalInput}
-    value={payerId}
-    onChange={e => setPayerId(e.target.value)}
-  >
-    <option value="">Wer hat bezahlt?</option>
-    {participants.map(p => (
-      <option key={p.id} value={p.id}>
-        {p.name}
-      </option>
-    ))}
-  </select>
-  <select
-  className={styles.modalInput}
-  value={distributionType}
-  onChange={e => setDistributionType(e.target.value)}
->
-  <option value="EQUAL_ALL">Gleich (alle)</option>
-  <option value="EQUAL_SOME">Gleich (ausgewählt)</option>
-  <option value="PERCENTAGE">Prozentual</option>
-  <option value="FIXED">Festbeträge</option>
-  <option value="BILL_SPLIT">Rechnung aufteilen</option> 
-</select>
-
-
-  {distributionType === 'EQUAL_SOME' && (
-    <div className={styles.optionGrid}>
-      {participants.map(p => (
-        <label key={p.id} className={styles.optionLabel}>
+      <div className="space-y-4">
+        <div className="flex gap-2">
           <input
-            type="checkbox"
-            checked={selectedParticipants.includes(p.id)}
-            onChange={() =>
-              setSelectedParticipants(s =>
-                s.includes(p.id) ? s.filter(x => x !== p.id) : [...s, p.id]
-              )
-            }
+            className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            placeholder="Neue Person hinzufügen"
+            value={newName}
+            maxLength={14}
+            onChange={e => setNewName(e.target.value)}
           />
-          {p.name}
-        </label>
-      ))}
-    </div>
-  )}
-
-  {distributionType === 'PERCENTAGE' && (
-    <>
-      <div className={styles.optionList}>
-        {participants.map(p => (
-          <div key={p.id} className={styles.optionRow}>
-            <span>{p.name}</span>
-            <input
-              className={`${styles.modalInput} ${styles.inputSmall}`}
-              type="text"
-              inputMode="decimal"
-              placeholder="%"
-              value={percentages[p.id] || ''}
-              onChange={e => {
-  				const cleanValue = e.target.value.replace(',', '.')
-  				setNewExpenseAmount(cleanValue)
-			  }}
-
-            />
-            <span>%</span>
-          </div>
-        ))}
-      </div>
-      <div
-        className={`${styles.inputSummary} ${
-          Object.values(percentages).reduce((s, v) => s + Number(v), 0) ===
-          100
-            ? styles.summaryValid
-            : styles.summaryInvalid
-        }`}
-      >
-        {Object.values(percentages).reduce((s, v) => s + Number(v), 0)}% von
-        100%
-      </div>
-    </>
-  )}
-
-  {distributionType === 'FIXED' && (
-    <>
-      <div className={styles.optionList}>
-        {participants.map(p => (
-          <div key={p.id} className={styles.optionRow}>
-            <span>{p.name}</span>
-            <input
-              className={`${styles.modalInput} ${styles.inputSmall}`}
-              type="text"
-              inputMode="decimal"
-              placeholder={newExpenseCurrency}
-              value={amounts[p.id] || ''}
-              onChange={e => {
-  					const cleanValue = e.target.value.replace(',', '.')
-  					setNewExpenseAmount(cleanValue)
-			  }}
-
-            />
-            <span>{newExpenseCurrency}</span>
-          </div>
-        ))}
-      </div>
-      <div
-        className={`${styles.inputSummary} ${
-          parseFloat(
-            Object.values(amounts)
-              .reduce((s, a) => s + Number(a), 0)
-              .toFixed(2)
-          ) === parseFloat(newExpenseAmount)
-            ? styles.summaryValid
-            : styles.summaryInvalid
-        }`}
-      >
-        {parseFloat(
-          Object.values(amounts)
-            .reduce((s, a) => s + Number(a), 0)
-            .toFixed(2)
-        ).toFixed(2)}{' '}
-        {newExpenseCurrency} von {parseFloat(newExpenseAmount).toFixed(2)}{' '}
-        {newExpenseCurrency}
-      </div>
-    </>
-  )}
-{/* BILL_SPLIT */}
-{distributionType === 'BILL_SPLIT' && (
-  <>
-    <div className={styles.optionList}>
-      {participants.map(p => {
-        // evaluate the formula to a number
-        let value = 0;
-        try {
-          value = new Parser().evaluate(formulas[p.id] || '0');
-        } catch {}
-        return (
-          <div key={p.id} className={styles.optionRow}>
-            {/* name on left */}
-            <span>{p.name}</span>
-            {/* flex spacer */}
-            <span className={styles.flexSpacer} />
-            {/* show the computed sum */}
-            <span>{value.toFixed(2)} {newExpenseCurrency}</span>
-            {/* calculator icon */}
-            <button
-              className={styles.calcButton}
-              onClick={() => openCalc(p.id)}
-            >
-              <FaCalculator />
-            </button>
-          </div>
-        );
-      })}
-    </div>
-
-    {/* summary line */}
-    {(() => {
-      const total = parseFloat(newExpenseAmount || 0);
-      let sum = 0;
-      const parser = new Parser();
-      participants.forEach(p => {
-        try {
-          sum += Number(parser.evaluate(formulas[p.id] || '0'));
-        } catch {}
-      });
-      sum = parseFloat(sum.toFixed(2));
-
-      let stateClass = styles.summaryNeutral;
-      if (sum === total) stateClass = styles.summaryValid;
-      else stateClass = styles.summaryInvalid;
-
-      return (
-        <div className={`${styles.inputSummary} ${stateClass}`}>
-          {sum.toFixed(2)} von {total.toFixed(2)} {newExpenseCurrency}
+          <button 
+            onClick={addParticipant}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+          >
+            <FaPlus />
+          </button>
         </div>
-      );
-    })()}
-  </>
-)}
+        <div className="space-y-2">
+          {participants.map(p => (
+            <div key={p.id} className="flex gap-2">
+              <input
+                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                value={manageNames[p.id] || ''}
+                onChange={e => setManageNames(m => ({ ...m, [p.id]: e.target.value }))}
+              />
+              <button
+                onClick={() => handleDeleteClick(p)}
+                className="px-4 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+              >
+                <FaTrashAlt />
+              </button>
+            </div>
+          ))}
+        </div>
+        <div className="text-right">
+          <button
+            onClick={async () => {
+              await Promise.all(
+                Object.entries(manageNames).map(async ([pid, name]) => {
+                  const orig = participants.find(x => x.id === pid)?.name;
+                  if (name && orig && name !== orig) {
+                    await supabase
+                      .from('participants')
+                      .update({ name })
+                      .eq('id', pid);
+                  }
+                })
+              );
+              fetchParticipants();
+              setShowManageModal(false);
+            }}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+          >
+            Speichern
+          </button>
+        </div>
+      </div>
+    </Modal>
 
-
-  <button
-    className={`${styles.btnAdd} ${styles.mt4}`}
-    onClick={addExpense}
-  >
-    <FaPlus /> Hinzufügen
-  </button>
-</Modal>
-
-{/* 4) Confirm Dialog */}
-<Modal
-  isOpen={showConfirmModal}
-  onClose={() => setShowConfirmModal(false)}
-  title="Bestätigen"
->
-  <p>{confirmMessage}</p>
-  <div className={styles.confirmButtons}>
-    <button className={styles.btnAdd} onClick={handleConfirm}>
-      Ja
-    </button>
-    <button
-      className={styles.btnClose}
-      onClick={() => setShowConfirmModal(false)}
+    {/* 3) New Expense */}
+    <Modal
+      isOpen={showExpenseModal}
+      onClose={() => setShowExpenseModal(false)}
+      title="Neue Ausgabe"
     >
-      Nein
-    </button>
-  </div>
-</Modal>
-
-{/* 5) Prompt Dialog */}
-<Modal
-  isOpen={showPromptModal}
-  onClose={() => setShowPromptModal(false)}
-  title="Eingabe erforderlich"
->
-  <p>{promptMessage}</p>
-  <input
-    className={styles.modalInput}
-    value={promptValue}
-    onChange={e => setPromptValue(e.target.value)}
-  />
-  <div className={styles.confirmButtons}>
-    <button className={styles.btnAdd} onClick={handlePrompt}>
-      Speichern
-    </button>
-    <button
-      className={styles.btnClose}
-      onClick={() => setShowPromptModal(false)}
-    >
-      Abbrechen
-    </button>
-  </div>
-</Modal>
-
-{/* 6) Info Dialog */}
-<Modal
-  isOpen={showInfoModal}
-  onClose={() => setShowInfoModal(false)}
-  title="Hinweis"
->
-  <p>{infoMessage}</p>
-  <div className={styles.confirmButtons}>
-    <button
-      className={styles.btnAdd}
-      onClick={() => setShowInfoModal(false)}
-    >
-      Verstanden
-    </button>
-  </div>
-</Modal>
-
-{/* 7) Delete Participant */}
-<Modal
-  isOpen={showDeleteModal}
-  onClose={() => setShowDeleteModal(false)}
-  title="Person löschen?"
->
-  <p>
-    Willst du <strong>{currentPart?.name}</strong> wirklich löschen?
-  </p>
-  <div className={styles.confirmButtons}>
-    <button className={styles.btnAdd} onClick={deleteParticipant}>
-      Ja
-    </button>
-    <button
-      className={styles.btnClose}
-      onClick={() => setShowDeleteModal(false)}
-    >
-      Nein
-    </button>
-  </div>
-</Modal>
-
-{/* 8) Rename Participant */}
-<Modal
-  isOpen={showRenameModal}
-  onClose={() => setShowRenameModal(false)}
-  title="Person umbenennen"
->
-  <input
-    className={styles.modalInput}
-    value={renameValue}
-    onChange={e => setRenameValue(e.target.value)}
-  />
-  <div className={styles.confirmButtons}>
-    <button className={styles.btnAdd} onClick={renameParticipant}>
-      Speichern
-    </button>
-    <button
-      className={styles.btnClose}
-      onClick={() => setShowRenameModal(false)}
-    >
-      Abbrechen
-    </button>
-  </div>
-</Modal>
-
-{/* 9) Settings */}
-<Modal
-  isOpen={showSettingsModal}
-  onClose={() => setShowSettingsModal(false)}
-  title="Währungenseinstellungen"
->
-<div>
-  <p style={{marginBottom: '12px'}}> <strong>Standardwährung: {' '}</strong>
-  {settings.default_currency}</p>
-</div>
-
-<p style={{marginBottom: '8px'}}>Zusätzliche Währungen:</p>
-<div className={styles.optionGrid}>
-  {['EUR','USD','PLN','GBP','CHF','CZK','HUF','SEK','NOK','DKK']
-    .filter(cur => cur !== settings.default_currency)    // Standardwährung rausfiltern
-    .map(cur => (
-      <label key={cur} className={styles.optionLabel}>
+      <div className="space-y-4">
         <input
-          type="checkbox"
-          checked={!!editSettings.extra_currencies[cur]}
-          onChange={e => {
-            const extras = { ...editSettings.extra_currencies };
-            if (e.target.checked) extras[cur] = 1;
-            else delete extras[cur];
-            setEditSettings(s => ({
-              ...s,
-              extra_currencies: extras
-            }));
-          }}
+          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          placeholder="Titel"
+          value={newExpenseTitle}
+          onChange={e => setNewExpenseTitle(e.target.value)}
         />
-        {cur}
-      </label>
-  ))}
-</div>
-
-
-  <div className={styles.rateList}>
-    <p>
-      <strong>Aktuelle Wechselkurse</strong> 
-    </p>
-    <p className={styles.optionRow}>
-    1 {editSettings.default_currency} =
-    </p>
-    {Object.entries(rates).map(([cur, r]) => (
-      <div key={cur} className={styles.optionRow}>
-        <span>{r.toFixed(2)}</span>
-        <span>{cur}</span>
-      </div>
-    ))}
-  </div>
-
-  <p className={styles.rateInfoText}>
-    Wechselkurse werden automatisch aktualisiert.​{' '}
-    {settings.last_updated
-      ? `Letzte Aktualisierung am ${new Date(
-          settings.last_updated
-        ).toLocaleDateString('de-DE')}.`
-      : ' '}
-  </p>
-
-<button
-  className={styles.btnAdd}
-  onClick={async () => {
-    const { error } = await supabase
-      .from('room_settings')
-      .upsert({
-        room_id: id,
-        default_currency: settings.default_currency,
-        extra_currencies: editSettings.extra_currencies,
-        auto_update: true
-      });
-    if (error) openInfo('Fehler beim Speichern der Einstellungen.');
-    else {
-      setSettings(s => ({ ...s, extra_currencies: editSettings.extra_currencies }));
-      setShowSettingsModal(false);
-    }
-  }}
->
-  Speichern
-</button>
-</Modal>
-
-{/* Calculator Modal */}
-<Modal
-  isOpen={showCalcModal}
-  onClose={() => setShowCalcModal(false)}
-  title={`Rechnung für ${findName(currentCalcParticipant)}`}
->
-  {/* Display */}
-  <div className={styles.calcDisplay}>
-    {calcExpr || '0'}
-  </div>
-
-  {/* Keys grid */}
-  <div className={styles.calcGrid}>
-    {[
-      '7','8','9','/',
-      '4','5','6','*',
-      '1','2','3','-',
-      '0','.','DEL','+',
-      '(',')','C','OK'
-    ].map(key => {
-      const isOp = ['/', '*', '-', '+', '(', ')', 'C', 'DEL'].includes(key);
-      const isOk = key === 'OK';
-      return (
-        <button
-          key={key}
-          className={`
-            ${styles.calcKey}
-            ${isOp   ? styles.calcKeyOp : ''}
-            ${isOk   ? styles.calcKeyOk : ''}
-          `}
-          onClick={() => {
-            if (key === 'C')      return setCalcExpr('');
-            if (key === 'DEL')    return setCalcExpr(expr => expr.slice(0, -1));
-            if (key === 'OK')     return handleCalcConfirm();
-            setCalcExpr(expr => expr + key);
-          }}
+        <div className="flex gap-2">
+          <input
+            className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            type="text"
+            inputMode="decimal"
+            placeholder="Betrag"
+            value={newExpenseAmount}
+            onChange={e => {
+              const cleanValue = e.target.value.replace(',', '.')
+              setNewExpenseAmount(cleanValue)
+            }}
+          />
+          <select
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            value={newExpenseCurrency}
+            onChange={e => setNewExpenseCurrency(e.target.value)}
+          >
+            <option value={settings.default_currency}>{settings.default_currency}</option>
+            {Object.keys(settings.extra_currencies).map(cur => (
+              <option key={cur} value={cur}>{cur}</option>
+            ))}
+          </select>
+        </div>
+        <select
+          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          value={payerId}
+          onChange={e => setPayerId(e.target.value)}
         >
-          {key === 'DEL' ? '⌫' : key}
+          <option value="">Wer hat bezahlt?</option>
+          {participants.map(p => (
+            <option key={p.id} value={p.id}>{p.name}</option>
+          ))}
+        </select>
+        <select
+          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          value={distributionType}
+          onChange={e => setDistributionType(e.target.value)}
+        >
+          <option value="EQUAL_ALL">Gleich (alle)</option>
+          <option value="EQUAL_SOME">Gleich (ausgewählt)</option>
+          <option value="PERCENTAGE">Prozentual</option>
+          <option value="FIXED">Festbeträge</option>
+          <option value="BILL_SPLIT">Rechnung aufteilen</option>
+        </select>
+
+        {distributionType === 'EQUAL_SOME' && (
+          <div className="grid grid-cols-2 gap-2">
+            {participants.map(p => (
+              <label key={p.id} className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selectedParticipants.includes(p.id)}
+                  onChange={() => setSelectedParticipants(s =>
+                    s.includes(p.id) ? s.filter(x => x !== p.id) : [...s, p.id]
+                  )}
+                  className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                />
+                <span className="text-gray-700 dark:text-gray-300">{p.name}</span>
+              </label>
+            ))}
+          </div>
+        )}
+
+        {distributionType === 'PERCENTAGE' && (
+          <>
+            <div className="space-y-2">
+              {participants.map(p => (
+                <div key={p.id} className="flex items-center gap-2">
+                  <span className="text-gray-700 dark:text-gray-300 flex-1">{p.name}</span>
+                  <input
+                    className="w-24 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="%"
+                    value={percentages[p.id] || ''}
+                    onChange={e => {
+                      const cleanValue = e.target.value.replace(',', '.')
+                      setPercentages(m => ({ ...m, [p.id]: cleanValue }))
+                    }}
+                  />
+                  <span className="text-gray-500 dark:text-gray-400">%</span>
+                </div>
+              ))}
+            </div>
+            <div className={`text-sm text-center p-2 rounded-lg ${
+              Object.values(percentages).reduce((s, v) => s + Number(v), 0) === 100
+                ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
+                : 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+            }`}>
+              {Object.values(percentages).reduce((s, v) => s + Number(v), 0)}% von 100%
+            </div>
+          </>
+        )}
+
+        {distributionType === 'FIXED' && (
+          <>
+            <div className="space-y-2">
+              {participants.map(p => (
+                <div key={p.id} className="flex items-center gap-2">
+                  <span className="text-gray-700 dark:text-gray-300 flex-1">{p.name}</span>
+                  <input
+                    className="w-32 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    type="text"
+                    inputMode="decimal"
+                    placeholder={newExpenseCurrency}
+                    value={amounts[p.id] || ''}
+                    onChange={e => {
+                      const cleanValue = e.target.value.replace(',', '.')
+                      setAmounts(m => ({ ...m, [p.id]: cleanValue }))
+                    }}
+                  />
+                  <span className="text-gray-500 dark:text-gray-400">{newExpenseCurrency}</span>
+                </div>
+              ))}
+            </div>
+            <div className={`text-sm text-center p-2 rounded-lg ${
+              parseFloat(Object.values(amounts).reduce((s, a) => s + Number(a), 0).toFixed(2)) === parseFloat(newExpenseAmount)
+                ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
+                : 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+            }`}>
+              {parseFloat(Object.values(amounts).reduce((s, a) => s + Number(a), 0).toFixed(2)).toFixed(2)} {newExpenseCurrency} von {parseFloat(newExpenseAmount).toFixed(2)} {newExpenseCurrency}
+            </div>
+          </>
+        )}
+
+        {distributionType === 'BILL_SPLIT' && (
+          <>
+            <div className="space-y-2">
+              {participants.map(p => {
+                let value = 0;
+                try {
+                  value = new Parser().evaluate(formulas[p.id] || '0');
+                } catch {}
+                return (
+                  <div key={p.id} className="flex items-center gap-2">
+                    <span className="text-gray-700 dark:text-gray-300 flex-1">{p.name}</span>
+                    <span className="text-gray-900 dark:text-white font-medium">
+                      {value.toFixed(2)} {newExpenseCurrency}
+                    </span>
+                    <button
+                      onClick={() => openCalc(p.id)}
+                      className="p-2 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                    >
+                      <FaCalculator />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+            {(() => {
+              const total = parseFloat(newExpenseAmount || 0);
+              let sum = 0;
+              const parser = new Parser();
+              participants.forEach(p => {
+                try {
+                  sum += Number(parser.evaluate(formulas[p.id] || '0'));
+                } catch {}
+              });
+              sum = parseFloat(sum.toFixed(2));
+
+              let stateClass = 'bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300';
+              if (sum === total) stateClass = 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300';
+              else stateClass = 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300';
+
+              return (
+                <div className={`text-sm text-center p-2 rounded-lg ${stateClass}`}>
+                  {sum.toFixed(2)} von {total.toFixed(2)} {newExpenseCurrency}
+                </div>
+              );
+            })()}
+          </>
+        )}
+
+        <button
+          onClick={addExpense}
+          className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+        >
+          <FaPlus /> Hinzufügen
         </button>
-      );
-    })}
-  </div>
-</Modal>
-
-
-
-
-
       </div>
-    </>
-  );
+    </Modal>
+
+    {/* 4) Confirm Dialog */}
+    <Modal
+      isOpen={showConfirmModal}
+      onClose={() => setShowConfirmModal(false)}
+      title="Bestätigen"
+    >
+      <div className="space-y-4">
+        <p className="text-gray-700 dark:text-gray-300">{confirmMessage}</p>
+        <div className="flex gap-2 justify-end">
+          <button
+            onClick={handleConfirm}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+          >
+            Ja
+          </button>
+          <button
+            onClick={() => setShowConfirmModal(false)}
+            className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+          >
+            Nein
+          </button>
+        </div>
+      </div>
+    </Modal>
+
+    {/* 5) Prompt Dialog */}
+    <Modal
+      isOpen={showPromptModal}
+      onClose={() => setShowPromptModal(false)}
+      title="Eingabe erforderlich"
+    >
+      <div className="space-y-4">
+        <p className="text-gray-700 dark:text-gray-300">{promptMessage}</p>
+        <input
+          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          value={promptValue}
+          onChange={e => setPromptValue(e.target.value)}
+        />
+        <div className="flex gap-2 justify-end">
+          <button
+            onClick={handlePrompt}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+          >
+            Speichern
+          </button>
+          <button
+            onClick={() => setShowPromptModal(false)}
+            className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+          >
+            Abbrechen
+          </button>
+        </div>
+      </div>
+    </Modal>
+
+    {/* 6) Info Dialog */}
+    <Modal
+      isOpen={showInfoModal}
+      onClose={() => setShowInfoModal(false)}
+      title="Hinweis"
+    >
+      <div className="space-y-4">
+        <p className="text-gray-700 dark:text-gray-300">{infoMessage}</p>
+        <div className="flex justify-end">
+          <button
+            onClick={() => setShowInfoModal(false)}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+          >
+            Verstanden
+          </button>
+        </div>
+      </div>
+    </Modal>
+
+    {/* 7) Delete Participant */}
+    <Modal
+      isOpen={showDeleteModal}
+      onClose={() => setShowDeleteModal(false)}
+      title="Person löschen?"
+    >
+      <div className="space-y-4">
+        <p className="text-gray-700 dark:text-gray-300">
+          Willst du <strong>{currentPart?.name}</strong> wirklich löschen?
+        </p>
+        <div className="flex gap-2 justify-end">
+          <button
+            onClick={deleteParticipant}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          >
+            Ja
+          </button>
+          <button
+            onClick={() => setShowDeleteModal(false)}
+            className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+          >
+            Nein
+          </button>
+        </div>
+      </div>
+    </Modal>
+
+    {/* 8) Rename Participant */}
+    <Modal
+      isOpen={showRenameModal}
+      onClose={() => setShowRenameModal(false)}
+      title="Person umbenennen"
+    >
+      <div className="space-y-4">
+        <input
+          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          value={renameValue}
+          onChange={e => setRenameValue(e.target.value)}
+        />
+        <div className="flex gap-2 justify-end">
+          <button
+            onClick={renameParticipant}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+          >
+            Speichern
+          </button>
+          <button
+            onClick={() => setShowRenameModal(false)}
+            className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+          >
+            Abbrechen
+          </button>
+        </div>
+      </div>
+    </Modal>
+
+    {/* 9) Settings */}
+    <Modal
+      isOpen={showSettingsModal}
+      onClose={() => setShowSettingsModal(false)}
+      title="Währungenseinstellungen"
+    >
+      <div className="space-y-6">
+        <div>
+          <p className="text-gray-700 dark:text-gray-300">
+            <strong>Standardwährung:</strong> {settings.default_currency}
+          </p>
+        </div>
+
+        <div>
+          <p className="text-gray-700 dark:text-gray-300 mb-2">Zusätzliche Währungen:</p>
+          <div className="grid grid-cols-2 gap-2">
+            {['EUR','USD','PLN','GBP','CHF','CZK','HUF','SEK','NOK','DKK']
+              .filter(cur => cur !== settings.default_currency)
+              .map(cur => (
+                <label key={cur} className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={!!editSettings.extra_currencies[cur]}
+                    onChange={e => {
+                      const extras = { ...editSettings.extra_currencies };
+                      if (e.target.checked) extras[cur] = 1;
+                      else delete extras[cur];
+                      setEditSettings(s => ({
+                        ...s,
+                        extra_currencies: extras
+                      }));
+                    }}
+                    className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                  />
+                  <span className="text-gray-700 dark:text-gray-300">{cur}</span>
+                </label>
+              ))}
+          </div>
+        </div>
+
+        <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4">
+          <p className="font-medium text-gray-900 dark:text-white mb-2">
+            Aktuelle Wechselkurse
+          </p>
+          <p className="text-gray-700 dark:text-gray-300 mb-2">
+            1 {editSettings.default_currency} =
+          </p>
+          <div className="space-y-1">
+            {Object.entries(rates).map(([cur, r]) => (
+              <div key={cur} className="flex justify-between text-gray-700 dark:text-gray-300">
+                <span>{r.toFixed(2)}</span>
+                <span>{cur}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Wechselkurse werden automatisch aktualisiert.​{' '}
+          {settings.last_updated
+            ? `Letzte Aktualisierung am ${new Date(settings.last_updated).toLocaleDateString('de-DE')}.`
+            : ' '}
+        </p>
+
+        <button
+          onClick={async () => {
+            const { error } = await supabase
+              .from('room_settings')
+              .upsert({
+                room_id: id,
+                default_currency: settings.default_currency,
+                extra_currencies: editSettings.extra_currencies,
+                auto_update: true
+              });
+            if (error) openInfo('Fehler beim Speichern der Einstellungen.');
+            else {
+              setSettings(s => ({ ...s, extra_currencies: editSettings.extra_currencies }));
+              setShowSettingsModal(false);
+            }
+          }}
+          className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+        >
+          Speichern
+        </button>
+      </div>
+    </Modal>
+
+    {/* Calculator Modal */}
+    <Modal
+      isOpen={showCalcModal}
+      onClose={() => setShowCalcModal(false)}
+      title={`Rechnung für ${findName(currentCalcParticipant)}`}
+    >
+      <div className="space-y-4">
+        <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-right text-2xl font-mono text-gray-900 dark:text-white">
+          {calcExpr || '0'}
+        </div>
+
+        <div className="grid grid-cols-4 gap-2">
+          {[
+            '7','8','9','/',
+            '4','5','6','*',
+            '1','2','3','-',
+            '0','.','DEL','+',
+            '(',')','C','OK'
+          ].map(key => {
+            const isOp = ['/', '*', '-', '+', '(', ')', 'C', 'DEL'].includes(key);
+            const isOk = key === 'OK';
+            return (
+              <button
+                key={key}
+                className={`
+                  p-3 rounded-lg text-lg font-medium transition-colors
+                  ${isOp ? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600' : ''}
+                  ${isOk ? 'bg-indigo-600 text-white hover:bg-indigo-700' : ''}
+                  ${!isOp && !isOk ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700/50' : ''}
+                `}
+                onClick={() => {
+                  if (key === 'C') return setCalcExpr('');
+                  if (key === 'DEL') return setCalcExpr(expr => expr.slice(0, -1));
+                  if (key === 'OK') return handleCalcConfirm();
+                  setCalcExpr(expr => expr + key);
+                }}
+              >
+                {key === 'DEL' ? '⌫' : key}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </Modal>
+
+  </PageLayout>
+);
 }
 
