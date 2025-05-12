@@ -973,7 +973,7 @@ if (lastActivity) {
       {/* Sticky Add Expense Button */}
       <button
           onClick={() => setShowExpenseModal(true)}
-          className="fixed bottom-3 right-3 p-4 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 transition-colors z-1000"
+          className="fixed bottom-8 right-8 p-4 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 transition-colors z-1000"
         >
           <FaPlus className="text-xl" />
       </button>

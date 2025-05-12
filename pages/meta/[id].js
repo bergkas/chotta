@@ -15,7 +15,7 @@ export default function MetaPage() {
       <MetaDashboard roomId={id} />
       
       {/* Meta Dashboard ID */}
-      <div className="max-w-4xl mx-auto mt-8 p-4 sm:p-6">
+      <div className="max-w-4xl mx-auto p-4 sm:p-6">
         <div className="bg-gradient-to-br from-gray-700/90 via-gray-600/90 to-gray-800/90 rounded-xl p-4 relative overflow-hidden">
           <div className="absolute inset-0 opacity-10 pointer-events-none">
           </div>
