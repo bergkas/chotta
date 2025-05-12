@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import localforage from 'localforage'
 import { supabase } from '../lib/supabase'
-import { FaMoon, FaSun,  FaPlusSquare, FaSignInAlt, FaLongArrowAltRight, FaPen } from 'react-icons/fa'
+import { FaMoon, FaSun, FaPlusSquare, FaSignInAlt, FaLongArrowAltRight, FaPen, FaSignOutAlt, FaArchive, FaUndoAlt } from 'react-icons/fa'
 import Image from 'next/image';
 import Modal from '../components/Modal';
 import { useTheme } from '../contexts/ThemeContext';
 import MetaHeaderCard from './MetaHeaderCard'
+import Link from 'next/link'
 
 function getGreeting() {
   const now = new Date()
@@ -24,12 +25,53 @@ function getGreeting() {
   return randomChoice(['Guten Tag', 'Hallo', 'Willkommen zurück'])
 }
 
+function formatAmount(v) {
+  return parseFloat(v).toFixed(2);
+}
+
+// Helper to calculate optimized debts (sum of settlements)
+function getOptimizedDebts(participants, expenses) {
+  // Build net balances
+  const net = {};
+  participants.forEach(p => net[p.id] = 0);
+  expenses.forEach(e => {
+    (e.expense_shares || []).forEach(s => {
+      const d = s.participant_id, c = e.paid_by, amt = parseFloat(s.share_amount);
+      if (d !== c) {
+        net[d] = Math.round((net[d] - amt) * 100) / 100;
+        net[c] = Math.round((net[c] + amt) * 100) / 100;
+      }
+    });
+  });
+  // Find settlements
+  const debtors = [], creditors = [];
+  Object.entries(net).forEach(([pid, bal]) => {
+    if (bal < -0.01) debtors.push({ id: pid, bal });
+    else if (bal > 0.01) creditors.push({ id: pid, bal });
+  });
+  debtors.sort((a,b) => a.bal - b.bal); creditors.sort((a,b) => b.bal - a.bal);
+  let total = 0;
+  while (debtors.length && creditors.length) {
+    const d = debtors[0], c = creditors[0];
+    const amt = Math.round(Math.min(-d.bal, c.bal) * 100) / 100;
+    if (amt < 0.01) break;
+    total += amt;
+    d.bal = Math.round((d.bal + amt) * 100) / 100;
+    c.bal = Math.round((c.bal - amt) * 100) / 100;
+    if (d.bal > -0.01) debtors.shift();
+    if (c.bal < 0.01) creditors.shift();
+  }
+  return total;
+}
+
 export default function MetaDashboard({ roomId }) {
   const router = useRouter()
   const [username, setUsername] = useState('')
   const [myRooms, setMyRooms] = useState([])
+  const [archivedRooms, setArchivedRooms] = useState([])
   const [roomDetails, setRoomDetails] = useState({})
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState('active') // 'active' or 'archived'
   
   const [showPromptModal, setShowPromptModal] = useState(false);
   const [promptMessage, setPromptMessage] = useState('');
@@ -41,6 +83,9 @@ export default function MetaDashboard({ roomId }) {
   const [newRoomCurrency, setNewRoomCurrency] = useState('EUR');
 
   const { darkMode, setDarkMode } = useTheme();
+
+  const [showArchiveConfirmModal, setShowArchiveConfirmModal] = useState(false);
+  const [roomToArchive, setRoomToArchive] = useState(null);
 
   useEffect(() => {
     document.body.classList.add('theme')
@@ -57,31 +102,70 @@ export default function MetaDashboard({ roomId }) {
           .single()
         if (userData) setUsername(userData.username)
 
+        // Fetch all rooms for this user
         const { data: roomData } = await supabase
           .from('participants')
-          .select('room_id, rooms(name)')
+          .select(`
+            room_id,
+            rooms (
+              name
+            )
+          `)
           .eq('user_id', roomId)
 
-        // Filter out any rooms with null names or IDs
-        const rooms = roomData
-          ?.filter(r => r.room_id && r.rooms?.name)
+        // Fetch archived rooms for this user
+        const { data: archivedData, error: archivedError } = await supabase
+          .from('archived_rooms')
+          .select('room_id')
+          .eq('user_id', roomId)
+
+        if (archivedError) {
+          console.error('Error fetching archived rooms:', archivedError);
+          return;
+        }
+
+        console.log('Archived data:', archivedData);
+        const archivedRoomIds = new Set(archivedData?.map(a => a.room_id) || []);
+        console.log('Archived room IDs:', Array.from(archivedRoomIds));
+
+        // Split rooms into active and archived
+        const activeRooms = roomData
+          ?.filter(r => r.room_id && r.rooms?.name && !archivedRoomIds.has(r.room_id))
           .map((r) => ({
             id: r.room_id,
             name: r.rooms.name,
           })) || []
 
-        setMyRooms(rooms)
+        const archived = roomData
+          ?.filter(r => r.room_id && r.rooms?.name && archivedRoomIds.has(r.room_id))
+          .map((r) => ({
+            id: r.room_id,
+            name: r.rooms.name,
+          })) || []
 
+        console.log('Processed archived rooms:', archived);
+
+        setMyRooms(activeRooms)
+        setArchivedRooms(archived)
+
+        // Fetch details for all rooms
         const allDetails = {}
+        console.log('Fetching details for rooms:', [...activeRooms, ...archived].map(r => r.id));
         await Promise.all(
-          rooms.map(async (room) => {
+          [...activeRooms, ...archived].map(async (room) => {
             try {
+              console.log('Fetching details for room:', room.id);
               const [participants, expenses, settings] = await Promise.all([
                 fetchParticipants(room.id),
                 fetchExpenses(room.id),
                 fetchSettings(room.id),
               ])
-              // Only add to details if we have valid data
+              console.log('Room details fetched:', {
+                roomId: room.id,
+                hasParticipants: !!participants,
+                hasExpenses: !!expenses,
+                hasSettings: !!settings
+              });
               if (participants && expenses && settings) {
                 allDetails[room.id] = { participants, expenses, settings }
               }
@@ -90,6 +174,7 @@ export default function MetaDashboard({ roomId }) {
             }
           })
         )
+        console.log('All room details:', allDetails);
         setRoomDetails(allDetails)
       } catch (error) {
         console.error('Error fetching meta dashboard data:', error)
@@ -110,7 +195,7 @@ export default function MetaDashboard({ roomId }) {
   async function fetchExpenses(id) {
     const { data } = await supabase
       .from('expenses')
-      .select('*')
+      .select('*, expense_shares(*)')
       .eq('room_id', id)
     return data || []
   }
@@ -216,16 +301,74 @@ export default function MetaDashboard({ roomId }) {
     setShowPromptModal(false);
   }
 
+  // roomId (prop) is the user ID from meta_rooms
+  // roomIdToArchive/roomIdToUnarchive is the room's ID
+  const handleArchiveRoom = async (roomIdToArchive) => {
+    // Check if already archived
+    const { data: existing, error: checkError } = await supabase
+      .from('archived_rooms')
+      .select('id')
+      .eq('room_id', roomIdToArchive)
+      .eq('user_id', roomId)
+      .maybeSingle();
+    if (existing) {
+      console.warn('Room is already archived.');
+      return;
+    }
+    if (checkError) {
+      console.error('Error checking archived room:', checkError);
+      return;
+    }
+    const { error } = await supabase
+      .from('archived_rooms')
+      .insert([{ 
+        room_id: roomIdToArchive,
+        user_id: roomId
+      }]);
+    if (error) {
+      console.error('Error archiving room:', error);
+      return;
+    }
+    // Move room from active to archived
+    const roomToMove = myRooms.find(r => r.id === roomIdToArchive);
+    if (roomToMove) {
+      setMyRooms(prev => prev.filter(r => r.id !== roomIdToArchive));
+      setArchivedRooms(prev => [...prev, roomToMove]);
+    }
+    setShowArchiveConfirmModal(false);
+    setRoomToArchive(null);
+  };
+
+  const handleUnarchiveRoom = async (roomIdToUnarchive) => {
+    const { error } = await supabase
+      .from('archived_rooms')
+      .delete()
+      .eq('room_id', roomIdToUnarchive)
+      .eq('user_id', roomId);
+
+    if (error) {
+      console.error('Error unarchiving room:', error);
+      return;
+    }
+
+    // Move room from archived to active
+    const roomToMove = archivedRooms.find(r => r.id === roomIdToUnarchive);
+    if (roomToMove) {
+      setArchivedRooms(prev => prev.filter(r => r.id !== roomIdToUnarchive));
+      setMyRooms(prev => [...prev, roomToMove]);
+    }
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen  z-0">
       <main className="max-w-2xl mx-auto p-4 sm:p-6">
         <MetaHeaderCard 
           username={username}
@@ -240,77 +383,137 @@ export default function MetaDashboard({ roomId }) {
           })}
         />
 
+        {/* Tabs */}
+        <div className="flex gap-2 mb-6">
+          <button
+            onClick={() => setActiveTab('active')}
+            className={`px-4 py-2 rounded-lg transition-colors ${
+              activeTab === 'active'
+                ? 'bg-indigo-600 text-white'
+                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+            }`}
+          >
+            Aktive Räume
+          </button>
+          <button
+            onClick={() => setActiveTab('archived')}
+            className={`px-4 py-2 rounded-lg transition-colors ${
+              activeTab === 'archived'
+                ? 'bg-indigo-600 text-white'
+                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+            }`}
+          >
+            Archivierte Räume
+          </button>
+        </div>
+
         {/* Room List */}
-        {myRooms.length > 0 ? (
+        {(activeTab === 'active' ? myRooms : archivedRooms).length > 0 ? (
           <div className="space-y-4">
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-              Deine Räume
+              {activeTab === 'active' ? 'Deine Räume' : 'Archivierte Räume'}
             </h3>
-            {myRooms.map((room, index) => {
+            {(activeTab === 'active' ? myRooms : archivedRooms).map((room, index) => {
               const details = roomDetails[room.id]
-              if (!details?.participants) return null
+              if (!details || !details.participants || !details.settings) {
+                console.warn('Skipping room due to missing details:', room.id, details);
+                return null;
+              }
+              const isArchived = activeTab === 'archived';
               return (
                 <div
                   key={room.id}
-                  onClick={() => router.push(`/room/${room.id}`)}
-                  className="bg-gradient-to-br from-indigo-600 via-indigo-500 to-indigo-700 rounded-xl shadow-lg p-4 relative overflow-hidden group cursor-pointer animate-fadeIn hover:shadow-xl transition-all duration-300"
-                  style={{ animationDelay: `${index * 100}ms` }}
+                  {...(!isArchived && { onClick: () => router.push(`/room/${room.id}`) })}
+                  className={
+                    'bg-gradient-to-br from-indigo-600/90 via-indigo-500/90 to-indigo-700/90 rounded-xl shadow-lg p-4 relative overflow-hidden group animate-fadeIn hover:shadow-xl transition-all duration-300 ' +
+                    (isArchived ? 'cursor-not-allowed' : 'cursor-pointer')
+                  }
+                  title={isArchived ? 'You need to unarchive this room before you can open it again' : undefined}
                 >
-                  {/* Simple dot pattern background */}
-                  <div className="absolute inset-0 opacity-10 pointer-events-none">
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,#fff_1px,transparent_0)] bg-[size:16px_16px]"></div>
+                  <div className="absolute inset-0 opacity-20 pointer-events-none">
                   </div>
-
+                  <div 
+                    className="absolute inset-0 opacity-40 pointer-events-none"
+                  />
+                  {/*  glow effect around the edges */}
+                  <div className="absolute inset-0 pointer-events-none">
+                    <div className="absolute inset-x-0 top-0 h-8 bg-white opacity-10 blur-xl"></div>
+                    <div className="absolute inset-x-0 bottom-0 h-8 bg-purple-400 opacity-20 blur-xl"></div>
+                    <div className="absolute inset-y-0 left-0 w-8 bg-white opacity-10 blur-xl"></div>
+                    <div className="absolute inset-y-0 right-0 w-8 bg-purple-400 opacity-20 blur-xl"></div>
+                  </div>
+                  {/* Coins background image */}
+                  <img
+                    src="/icon_coins.png"
+                    alt=""
+                    aria-hidden="true"
+                    className="absolute right-0 top-1/2 -translate-y-1/2 w-40 h-40 opacity-10 pointer-events-none select-none"
+                    style={{ zIndex: 1 }}
+                  />
                   {/* Room Header */}
-                  <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center justify-between mb-4 relative z-10">
                     <h1 className="text-xl font-bold text-white group-hover:text-indigo-50 transition-colors duration-300">
                       {room.name}
                     </h1>
-                    <span className="text-white/80 text-sm">
-                      {details.participants.length} {details.participants.length === 1 ? 'Person' : 'Personen'}
-                    </span>
+                    {isArchived ? (
+                      <button
+                        onClick={e => {
+                          e.stopPropagation();
+                          handleUnarchiveRoom(room.id);
+                        }}
+                        className="flex flex-row gap-1 justify-center items-center text-xs text-white-400"
+                        title="Un-Archive Room"
+                      >
+                        <FaUndoAlt />Aktivieren
+                      </button>
+                    ) : (
+                      <button
+                        onClick={e => {
+                          e.stopPropagation();
+                          handleArchiveRoom(room.id);
+                        }}
+                        className="flex flex-row gap-1 justify-center items-center text-xs text-white-400"
+                        title="Raum archivieren"
+                      >
+                        <FaArchive />Archivieren
+                      </button>
+                    )}
                   </div>
-
                   {/* Participants */}
-                  <div className="flex flex-wrap gap-1.5 mb-4">
+                  <div className="flex flex-wrap gap-1.5 mb-4 relative z-10">
                     {details.participants.map((p) => (
                       <span
                         key={p.id}
-                        className="px-2.5 py-1.5 bg-white/15 backdrop-blur-sm border border-white/20 rounded-full text-white text-sm"
+                        className="px-2.5 py-1 bg-white/15 backdrop-blur-sm border border-white/20 rounded-full text-white text-sm"
                       >
                         {p.name}
                       </span>
                     ))}
                   </div>
-
                   {/* Summary Row */}
                   <div 
-                    className="flex items-center justify-between text-white rounded-lg p-3 relative"
+                    className="flex items-center justify-between text-white rounded-lg py-1 px-3 relative z-10"
                     style={{
-                      background: 'rgba(255,255,255,0.12)',
-                      boxShadow: 'inset 0 1px 1px rgba(255, 255, 255, 0.1)'
+                      background: 'rgba(255,255,255,0.15)',
+                      boxShadow: 'inset 0 1px 1px rgba(255, 255, 255, 0.2), 0 2px 8px rgba(0, 0, 0, 0.15)'
                     }}
                   >
-                    {/* Simple gradient accent */}
-                    <div 
-                      className="absolute inset-0 opacity-30"
-                      style={{
-                        background: 'linear-gradient(to bottom, rgba(255,255,255,0.2) 0%, transparent 100%)',
-                        borderRadius: '0.5rem',
-                        zIndex: -1
-                      }}
-                    />
-                    
                     <div className="flex flex-col">
-                      <span className="text-sm text-white/80">Ausgaben</span>
-                      <strong className="text-base">
+                      <span className="text-xs text-white/80">Ausgaben</span>
+                      <span className="text-base font-semibold text-white">
                         {getTotal(room.id)} {details.settings.default_currency}
-                      </strong>
+                      </span>
                     </div>
-                    
-                    <span className="flex items-center gap-1 text-white/90 group-hover:text-white transition-colors duration-300">
-                      zum Raum <FaLongArrowAltRight className="transform group-hover:translate-x-1 transition-transform duration-300" />
-                    </span>
+                    <div className="flex flex-col items-end">
+                      <span className="text-xs text-white/80">Offene Schulden</span>
+                      <span className="text-base font-semibold text-white">
+                        {(() => {
+                          const d = details;
+                          if (!d || !d.participants || !d.expenses) return '0.00';
+                          return formatAmount(getOptimizedDebts(d.participants, d.expenses));
+                        })()} {details.settings.default_currency}
+                      </span>
+                    </div>
                   </div>
                 </div>
               )
@@ -318,37 +521,45 @@ export default function MetaDashboard({ roomId }) {
           </div>
         ) : (
           <div className="text-center py-12 animate-fadeIn">
-            <div className="w-20 h-20 mx-auto mb-4 text-indigo-400 dark:text-indigo-500 animate-bounce">
-              <FaPlusSquare className="w-full h-full" />
-            </div>
-            <p className="text-gray-500 dark:text-gray-400 mb-6">
-              Du bist in noch keinen Räumen. Erstelle einen neuen oder tritt einem bei!
-            </p>
-            <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <button
-                onClick={openCreateRoomModal}
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-xl hover:from-indigo-500 hover:to-indigo-600 transition-all duration-300 shadow-lg hover:shadow-xl"
-              >
-                <FaPlusSquare className="animate-pulse" /> Raum erstellen
-              </button>
-              <button
-                onClick={handleJoinRoom}
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300 shadow-lg hover:shadow-xl"
-              >
-                <FaSignInAlt /> Raum beitreten
-              </button>
-            </div>
+            {activeTab === 'active' ? (
+              <>
+                <div className="w-20 h-20 mx-auto mb-4 text-indigo-400 dark:text-indigo-500 animate-bounce">
+                  <FaPlusSquare className="w-full h-full" />
+                </div>
+                <p className="text-gray-500 dark:text-gray-400 mb-6">
+                  Du bist in noch keinen Räumen. Erstelle einen neuen oder tritt einem bei!
+                </p>
+                <div className="flex flex-col sm:flex-row justify-center gap-4">
+                  <button
+                    onClick={openCreateRoomModal}
+                    className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-xl hover:from-indigo-500 hover:to-indigo-600 transition-all duration-300 shadow-lg hover:shadow-xl"
+                  >
+                    <FaPlusSquare /> Raum erstellen
+                  </button>
+                  <button
+                    onClick={handleJoinRoom}
+                    className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300 shadow-lg hover:shadow-xl"
+                  >
+                    <FaSignInAlt /> Raum beitreten
+                  </button>
+                </div>
+              </>
+            ) : (
+              <p className="text-gray-500 dark:text-gray-400 mb-6">
+                Keine archivierten Räume vorhanden.
+              </p>
+            )}
           </div>
         )}
 
-        {/* Action Buttons - Only show if rooms exist */}
-        {myRooms.length > 0 && (
+        {/* Action Buttons - Only show if active rooms exist */}
+        {activeTab === 'active' && myRooms.length > 0 && (
           <div className="flex flex-col sm:flex-row justify-center gap-4 mt-10">
             <button
               onClick={openCreateRoomModal}
               className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-xl hover:from-indigo-500 hover:to-indigo-600 transition-all duration-300 shadow-lg hover:shadow-xl"
             >
-              <FaPlusSquare className="animate-pulse" /> Raum erstellen
+              <FaPlusSquare /> Raum erstellen
             </button>
             <button
               onClick={handleJoinRoom}
@@ -358,84 +569,116 @@ export default function MetaDashboard({ roomId }) {
             </button>
           </div>
         )}
-      </main>
 
-
-      {/* Modals */}
-      <Modal
-        isOpen={showPromptModal}
-        onClose={() => setShowPromptModal(false)}
-        title="Eingabe erforderlich"
-      >
-        <div className="space-y-4">
-          <p className="text-gray-600 dark:text-gray-300">{promptMessage}</p>
-          <input
-            className="w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
-            value={promptValue}
-            onChange={(e) => setPromptValue(e.target.value)}
-          />
-          <div className="flex justify-end gap-2">
-            <button
-              className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white transition-colors"
-              onClick={() => setShowPromptModal(false)}
-            >
-              Abbrechen
-            </button>
-            <button
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-              onClick={handlePrompt}
-            >
-              Speichern
-            </button>
-          </div>
-        </div>
-      </Modal>
-
-      <Modal
-        isOpen={showCreateRoomModal}
-        onClose={() => setShowCreateRoomModal(false)}
-        title="Neuen Raum erstellen"
-      >
-        <div className="space-y-4">
-          <input
-            className="w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
-            placeholder="Raumname"
-            value={newRoomName}
-            onChange={e => setNewRoomName(e.target.value)}
-          />
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Standardwährung
-            </label>
-            <select
-              className="w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
-              value={newRoomCurrency}
-              onChange={e => setNewRoomCurrency(e.target.value)}
-            >
-              {['EUR','USD','PLN','GBP','CHF','CZK','HUF','SEK','NOK','DKK'].map(cur => (
-                <option key={cur} value={cur}>{cur}</option>
-              ))}
-            </select>
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              Achtung, Standardwährung kann später nicht mehr geändert werden!
+        {/* Archive Confirmation Modal */}
+        <Modal
+          isOpen={showArchiveConfirmModal}
+          onClose={() => {
+            setShowArchiveConfirmModal(false);
+            setRoomToArchive(null);
+          }}
+          title="Raum archivieren"
+        >
+          <div className="space-y-4">
+            <p className="text-gray-300">
+              Möchtest du diesen Raum wirklich archivieren? Du kannst ihn später jederzeit wieder finden.
             </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setShowArchiveConfirmModal(false);
+                  setRoomToArchive(null);
+                }}
+                className="flex-1 px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white transition-colors"
+              >
+                Abbrechen
+              </button>
+              <button
+                onClick={handleArchiveRoom}
+                className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              >
+                Archivieren
+              </button>
+            </div>
           </div>
-          <div className="flex justify-end gap-2">
-            <button
-              className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white transition-colors"
-              onClick={() => setShowCreateRoomModal(false)}
-            >
-              Abbrechen
-            </button>
-            <button
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-              onClick={handleCreateRoom}
-            >
-              Erstellen
-            </button>
+        </Modal>
+
+        {/* Modals */}
+        <Modal
+          isOpen={showPromptModal}
+          onClose={() => setShowPromptModal(false)}
+          title="Eingabe erforderlich"
+        >
+          <div className="space-y-4">
+            <p className="text-gray-600 dark:text-gray-300">{promptMessage}</p>
+            <input
+              className="w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+              value={promptValue}
+              onChange={(e) => setPromptValue(e.target.value)}
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white transition-colors"
+                onClick={() => setShowPromptModal(false)}
+              >
+                Abbrechen
+              </button>
+              <button
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                onClick={handlePrompt}
+              >
+                Speichern
+              </button>
+            </div>
           </div>
-        </div>
-      </Modal>
+        </Modal>
+
+        <Modal
+          isOpen={showCreateRoomModal}
+          onClose={() => setShowCreateRoomModal(false)}
+          title="Neuen Raum erstellen"
+        >
+          <div className="space-y-4">
+            <input
+              className="w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+              placeholder="Raumname"
+              value={newRoomName}
+              onChange={e => setNewRoomName(e.target.value)}
+            />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Standardwährung
+              </label>
+              <select
+                className="w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                value={newRoomCurrency}
+                onChange={e => setNewRoomCurrency(e.target.value)}
+              >
+                {['EUR','USD','PLN','GBP','CHF','CZK','HUF','SEK','NOK','DKK'].map(cur => (
+                  <option key={cur} value={cur}>{cur}</option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Achtung, Standardwährung kann später nicht mehr geändert werden!
+              </p>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button
+                className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white transition-colors"
+                onClick={() => setShowCreateRoomModal(false)}
+              >
+                Abbrechen
+              </button>
+              <button
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                onClick={handleCreateRoom}
+              >
+                Erstellen
+              </button>
+            </div>
+          </div>
+        </Modal>
+      </main>
     </div>
   )
 }

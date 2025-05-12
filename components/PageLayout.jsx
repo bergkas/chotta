@@ -2,6 +2,7 @@ import { useRouter } from 'next/router';
 import Image from 'next/image';
 import { FaArrowLeft, FaSun, FaMoon } from 'react-icons/fa';
 import { useTheme } from '../contexts/ThemeContext';
+import Modal from '../components/Modal';
 
 export default function PageLayout({ children, showBack = true, title = null, showHeader = true }) {
   const router = useRouter();
@@ -9,8 +10,11 @@ export default function PageLayout({ children, showBack = true, title = null, sh
 
   return (
     // Main container with fixed height and scroll behavior
-    <div className="flex flex-col bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
-      
+    <div className="relative flex flex-col bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 min-h-screen">
+      {/* Global background pattern */}
+      <div className="absolute inset-0 opacity-5 pointer-events-none z-0">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,#fff_1px,transparent_0)] bg-[size:16px_16px]"></div>
+      </div>
       {/* Sticky Header - Fixed position instead of sticky for better reliability */}
       {showHeader && (
         <header className="fixed top-0 left-0 w-full z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md shadow-sm">
@@ -50,14 +54,14 @@ export default function PageLayout({ children, showBack = true, title = null, sh
       )}
 
       {/* Main Content - Added padding for header and adjusted scroll behavior */}
-      <main className={`flex-1 ${showHeader ? 'pt-16' : ''} overflow-y-auto`}>
+      <main className={`flex-1 ${showHeader ? 'pt-16' : ''} overflow-y-auto relative z-10`}>
         <div className="max-w-5xl mx-auto">
           {children}
         </div>
       </main>
 
       {/* Footer - Modern and clean design */}
-      <footer className="mt-auto bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 py-4">
+      <footer className="mt-auto bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 py-4 relative z-10">
         <div className="max-w-5xl mx-auto px-2">
           <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-0 text-sm text-gray-500 dark:text-gray-400">
             <div className="flex items-center">

@@ -378,7 +378,7 @@ const OptimizedSettlements = ({
             
             <button
               onClick={() => completeTransfer(e.from, e.to, e.amount)}
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/50 active:bg-emerald-200 dark:active:bg-emerald-900 transition-colors"
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-700 dark:bg-emerald-500 text-white-600 dark:text-white rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/50 active:bg-emerald-200 dark:active:bg-emerald-900 transition-colors"
             >
               <FaMoneyBillWave size={14} />
               <span>Begleichen</span>

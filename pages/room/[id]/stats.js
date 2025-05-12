@@ -10,6 +10,7 @@ import {
   FaArrowLeft,
   FaChartBar,
   FaHeart,
+  FaUsers,
 } from 'react-icons/fa';
 import { FaMoneyBillTransfer, FaArrowRightArrowLeft } from 'react-icons/fa6';
 
@@ -20,11 +21,12 @@ import {
   LinearScale,
   PointElement,
   LineElement,
+  BarElement,
   Title,
   Tooltip,
   Legend,
 } from 'chart.js';
-import { Line } from 'react-chartjs-2';
+import { Line, Bar } from 'react-chartjs-2';
 import PageLayout from '../../../components/PageLayout';
 
 // Register ChartJS components
@@ -33,6 +35,7 @@ Chart.register(
   LinearScale,
   PointElement,
   LineElement,
+  BarElement,
   Title,
   Tooltip,
   Legend
@@ -138,7 +141,7 @@ export default function Stats() {
       net: paid - owed,
       totalSpent: owed // This is what they actually spent (their shares)
     };
-  }).sort((a, b) => b.net - a.net);
+  }).sort((b, a) => b.net - a.net);
 
   // Prepare time series data
   const timeSeriesData = expenses
@@ -158,6 +161,24 @@ export default function Stats() {
         borderColor: 'rgba(255, 255, 255, 0.8)',
         backgroundColor: 'rgba(255, 255, 255, 0.2)',
         tension: 0.4,
+      },
+    ],
+  };
+
+  // Participant stats - Fixed the undefined p variable
+  const participantData = {
+    labels: participants.map(p => p.name),
+    datasets: [
+      {
+        label: 'Ausgaben',
+        data: participants.map(p => 
+          expenses
+            .filter(e => e.paid_by === p.id)
+            .reduce((sum, e) => sum + parseFloat(e.amount), 0)
+        ),
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        borderColor: 'rgba(255, 255, 255, 0.8)',
+        borderWidth: 1,
       },
     ],
   };
@@ -208,13 +229,49 @@ export default function Stats() {
     },
   };
 
+  const participantOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      y: {
+        beginAtZero: true,
+        title: {
+          display: true,
+          text: settings.default_currency,
+          color: 'rgba(255, 255, 255, 0.8)',
+          font: {
+            size: 12
+          }
+        },
+        grid: {
+          color: 'rgba(255, 255, 255, 0.1)'
+        },
+        ticks: {
+          color: 'rgba(255, 255, 255, 0.8)'
+        }
+      },
+      x: {
+        grid: {
+          color: 'rgba(255, 255, 255, 0.1)'
+        },
+        ticks: {
+          color: 'rgba(255, 255, 255, 0.8)'
+        }
+      }
+    },
+  };
+
   if (!id) return null;
 
   return (
     <PageLayout title="Statistiken">
-      <div className="max-w-4xl mx-auto p-4 sm:p-6">
+      <div className="max-w-4xl mx-auto p-4 sm:p-6 relative">
+        {/* Dot pattern background */}
+        <div className="absolute inset-0 opacity-5 pointer-events-none">
+        </div>
+
         {/* Summary */}
-        <div className="mb-8">
+        <div className="mb-8 relative">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
             {roomName || 'Raum'}
           </h2>
@@ -229,7 +286,6 @@ export default function Stats() {
           <div className="bg-gradient-to-br from-indigo-600/90 via-indigo-500/90 to-indigo-700/90 rounded-xl p-5 shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden mb-4">
             {/* Dot pattern background */}
             <div className="absolute inset-0 opacity-10 pointer-events-none">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,#fff_1px,transparent_0)] bg-[size:16px_16px]"></div>
             </div>
             <div className="flex items-center gap-3 mb-3 relative">
               <div className="bg-white/15 backdrop-blur-sm rounded-lg">
@@ -249,7 +305,6 @@ export default function Stats() {
           <div className="bg-gradient-to-br from-emerald-600/90 via-emerald-500/90 to-emerald-700/90 rounded-xl p-5 shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden mb-4">
             {/* Dot pattern background */}
             <div className="absolute inset-0 opacity-10 pointer-events-none">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,#fff_1px,transparent_0)] bg-[size:16px_16px]"></div>
             </div>
             <div className="flex items-center gap-3 mb-3 relative">
               <div className="bg-white/15 backdrop-blur-sm rounded-lg">
@@ -269,7 +324,6 @@ export default function Stats() {
           <div className="bg-gradient-to-br from-amber-600/90 via-amber-500/90 to-amber-700/90 rounded-xl p-5 shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden mb-4">
             {/* Dot pattern background */}
             <div className="absolute inset-0 opacity-10 pointer-events-none">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,#fff_1px,transparent_0)] bg-[size:16px_16px]"></div>
             </div>
             <div className="flex items-center gap-3 mb-3 relative">
               <div className="bg-white/15 backdrop-blur-sm rounded-lg">
@@ -289,7 +343,6 @@ export default function Stats() {
           <div className="bg-gradient-to-br from-rose-600/90 via-rose-500/90 to-rose-700/90 rounded-xl p-5 shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden ">
             {/* Dot pattern background */}
             <div className="absolute inset-0 opacity-10 pointer-events-none">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,#fff_1px,transparent_0)] bg-[size:16px_16px]"></div>
             </div>
             <div className="flex items-center gap-3 mb-3 relative">
               <div className="bg-white/15 backdrop-blur-sm rounded-lg">
@@ -314,7 +367,6 @@ export default function Stats() {
         <div className="bg-gradient-to-br from-sky-600/90 via-sky-500/90 to-sky-700/90 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden mb-8">
           {/* Dot pattern background */}
           <div className="absolute inset-0 opacity-10 pointer-events-none">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,#fff_1px,transparent_0)] bg-[size:16px_16px]"></div>
           </div>
           <div className="flex items-center gap-3 mb-4 relative">
             <div className="bg-white/15 backdrop-blur-sm rounded-lg">
@@ -347,56 +399,21 @@ export default function Stats() {
         </div>
 
         {/* Time Series Chart */}
-        <div className="bg-gradient-to-br from-gray-700/90 via-gray-600/90 to-gray-800/90 rounded-xl px-1 py-6 shadow-lg hover:shadow-xl transition-all duration-300 mb-8 relative overflow-hidden">
+        <div className="bg-gradient-to-br from-gray-900/90 via-gray-800 to-gray-900/90 rounded-xl px-1 py-6 shadow-lg hover:shadow-xl transition-all duration-300 mb-8 relative overflow-hidden">
           {/* Dot pattern background */}
           <div className="absolute inset-0 opacity-10 pointer-events-none">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,#fff_1px,transparent_0)] bg-[size:16px_16px]"></div>
           </div>
           <div className="flex items-center gap-3 mb-6 relative px-5">
             <div className="bg-white/15 backdrop-blur-sm rounded-lg">
               <FaChartLine className="text-base text-white" />
             </div>
-            <h3 className="text-lg font-semibold text-white">Und im Verlauf</h3>
+            <h3 className="text-lg font-semibold text-white">Ausgaben über Zeit</h3>
           </div>
-          <div className="h-64 relative">
-            <ChartWrapper 
-              data={{
-                ...chartData,
-                datasets: [{
-                  ...chartData.datasets[0],
-                  borderColor: 'rgba(255, 255, 255, 0.8)',
-                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                }]
-              }} 
-              options={{
-                ...chartOptions,
-                scales: {
-                  ...chartOptions.scales,
-                  y: {
-                    ...chartOptions.scales.y,
-                    grid: {
-                      color: 'rgba(255, 255, 255, 0.1)'
-                    },
-                    ticks: {
-                      ...chartOptions.scales.y.ticks,
-                      color: 'rgba(255, 255, 255, 0.8)'
-                    }
-                  },
-                  x: {
-                    grid: {
-                      color: 'rgba(255, 255, 255, 0.1)'
-                    },
-                    ticks: {
-                      color: 'rgba(255, 255, 255, 0.8)'
-                    }
-                  }
-                }
-              }} 
-            />
+          <div className="h-64 relative px-4">
+            <Line data={chartData} options={chartOptions} />
           </div>
         </div>
 
-        
       </div>
     </PageLayout>
   );

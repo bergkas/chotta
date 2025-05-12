@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { FaPen, FaPlus, FaRegCopy } from 'react-icons/fa';
+import { FaPen, FaPlus, FaRegCopy, FaChevronDown } from 'react-icons/fa';
+import { Tooltip } from 'react-tooltip';
+import { supabase } from '../lib/supabase';
 
 const HeaderCard = ({ 
   roomName, 
@@ -13,7 +15,8 @@ const HeaderCard = ({
   openInfo, 
   setManageNames, 
   setShowManageModal,
-  formatAmount
+  formatAmount,
+  offeneSchulden
 }) => {
   // For the subtle wave animation in the background
   const [wavePhase, setWavePhase] = useState(0);
@@ -27,39 +30,38 @@ const HeaderCard = ({
     return () => clearInterval(interval);
   }, []);
 
+
+
+
   return (
     <div
-      className="bg-gradient-to-br from-indigo-600 via-indigo-500 to-indigo-700 rounded-xl shadow-lg p-4 mb-4 relative overflow-hidden animate-fadeIn"
+      className="bg-gradient-to-br from-indigo-600/90 via-indigo-500/90 to-indigo-700/90 rounded-xl p-4 shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden mb-6"
     >
-      {/* Simple dot pattern background - mobile friendly */}
-      <div className="absolute inset-0 opacity-10 pointer-events-none">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,#fff_1px,transparent_0)] bg-[size:16px_16px]"></div>
-      </div>
+
+
       
-      {/* Animated gradient overlay - subtle movement */}
-      <div 
-        className="absolute inset-0 opacity-30 pointer-events-none"
-        style={{
-          background: `linear-gradient(${wavePhase * 3.6}deg, rgba(255,255,255,0.1) 0%, rgba(85, 0, 255, 0.59) 50%, rgba(255,255,255,0.1) 100%)`,
-          transition: 'background 0.5s ease-out'
-        }}
-      />
-      
-      {/* Logo with simple fade effect */}
-      <div className="absolute top-4 right-4 opacity-75 transition-opacity duration-300">
-        <Image
-          src="/chotty_logo_full_white.svg"
-          alt="Chotty Logo"
-          width={90}
-          height={56}
-          className="drop-shadow-md"
-        />
+      {/* Visible glow effect around the edges */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute inset-x-0 top-0 h-8 bg-white opacity-10 blur-xl"></div>
+        <div className="absolute inset-x-0 bottom-0 h-8 bg-purple-400 opacity-20 blur-xl"></div>
+        <div className="absolute inset-y-0 left-0 w-8 bg-white opacity-10 blur-xl"></div>
+        <div className="absolute inset-y-0 right-0 w-8 bg-purple-400 opacity-20 blur-xl"></div>
       </div>
 
-      {/* Room name with improved edit button */}
-      <div className="flex items-center gap-2 mb-4 mt-1">
-        <h1 className="text-2xl font-bold text-white flex-1 transition-colors duration-300">
-          {roomName}
+        
+      {/* Coins background image */}
+      <img
+        src="/icon_coins.png"
+        alt=""
+        aria-hidden="true"
+        className="absolute right-0 top-1/2 -translate-y-1/2 w-48 h-48 opacity-5 pointer-events-none select-none"
+        style={{ zIndex: 1 }}
+      />
+  
+      {/* Room name with improved edit button and visible hover effect */}
+      <div className="flex items-center gap-2 mb-4 relative z-10">
+        <h1 className="text-2xl font-bold text-white flex-1 group">
+          <span className="relative z-10">{roomName}</span>
           <button
             onClick={() => openPrompt('Neuer Raumname:', roomName, async v => {
               if (!v) return;
@@ -70,20 +72,20 @@ const HeaderCard = ({
               if (!error) setRoomName(v);
               else openInfo('Fehler beim Ändern des Raumnamens.');
             })}
-            className="ml-2 inline-flex items-center justify-center h-6 w-6 rounded-full bg-white/10 text-white/80 hover:text-white hover:bg-white/20 active:bg-white/30 transition-all duration-200"
+            className="ml-2 inline-flex items-center justify-center h-6 w-6 rounded-full bg-white/20 text-white hover:bg-white/30 active:bg-white/40 transition-all duration-200 hover:shadow-lg hover:shadow-white/20"
             aria-label="Edit room name"
           >
             <FaPen className="text-xs" />
           </button>
         </h1>
       </div>
-
-      {/* Participants with improved mobile styling */}
+  
+      {/* Participants  */}
       <div className="flex flex-wrap gap-1.5 mb-4">
         {participants.map((p) => (
           <span
             key={p.id}
-            className="px-2.5 py-1.5 bg-white/15 backdrop-blur-sm border border-white/20 rounded-full text-white text-sm active:bg-white/25 transition-all duration-200"
+            className="px-2.5 py-1 bg-white/15 backdrop-blur-sm border border-white/20 rounded-full text-white text-sm"
           >
             {p.name}
           </span>
@@ -93,50 +95,52 @@ const HeaderCard = ({
             setManageNames(Object.fromEntries(participants.map(p => [p.id, p.name])));
             setShowManageModal(true);
           }}
-          className="px-2.5 py-1.5 bg-white/15 backdrop-blur-sm border border-white/20 rounded-full text-white text-sm active:bg-white/25 transition-all duration-200 flex items-center"
+          className="px-2.5 py-1.5  backdrop-blur-sm border border-purple-300/30 rounded-full text-white text-sm hover:bg-purple-500/60 hover:shadow-lg hover:shadow-purple-500/30 active:bg-purple-600/60 transition-all duration-200 flex items-center gap-1" 
+          
           aria-label="Add participant"
         >
           <FaPlus className="text-xs" />
+          
         </button>
       </div>
-
-      {/* Summary Row with glass effect - mobile optimized */}
+  
+      {/* Summary Row with glass effect and both metrics */}
       <div 
-        className="flex items-center justify-between text-white rounded-lg p-2 mt-2 relative"
+        className="flex items-center justify-between text-white rounded-lg p-2 mt-2 relative group overflow-hidden"
         style={{
-          background: 'rgba(255,255,255,0.12)',
-          boxShadow: 'inset 0 1px 1px rgba(255, 255, 255, 0.1)'
+          background: 'rgba(255,255,255,0.15)',
+          boxShadow: 'inset 0 1px 1px rgba(255, 255, 255, 0.2), 0 2px 8px rgba(0, 0, 0, 0.15)'
         }}
       >
-        {/* Simple gradient accent */}
-        <div 
-          className="absolute inset-0 opacity-30"
-          style={{
-            background: 'linear-gradient(to bottom, rgba(255,255,255,0.2) 0%, transparent 100%)',
-            borderRadius: '0.5rem',
-            zIndex: -1
-          }}
-        />
-        
-        <div className="flex flex-col">
+        <div className="flex flex-col relative z-10">
           <span className="text-xs text-white/80">Ausgaben</span>
-          <strong className="text-base">
+          <strong className="text-base bg-clip-text text-transparent bg-gradient-to-r from-white to-purple-200">
             {formatAmount(totalExpenses)} {settings.default_currency}
           </strong>
         </div>
-        
-        <button
-          onClick={() => {
-            navigator.clipboard.writeText(id);
-            openInfo('Raum-ID kopiert!');
-          }}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 text-white/90 active:bg-white/20 text-sm transition-colors duration-200"
-        >
-          <FaRegCopy /> Raum-ID
-        </button>
+        {offeneSchulden !== undefined && (
+          <div className="flex flex-col items-end relative z-10">
+            <span className="text-xs text-white/80">Offene Schulden</span>
+            <button
+              onClick={() => {
+                const el = document.getElementById('optimized');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="flex items-center gap-1 text-base font-semibold text-white bg-clip-text text-transparent bg-gradient-to-r from-white to-emerald-200 hover:text-emerald-200 focus:outline-none transition-colors"
+              style={{ cursor: 'pointer' }}
+              title="Zu Rückzahlungen scrollen"
+            >
+              {formatAmount(offeneSchulden)} {settings.default_currency}
+              <FaChevronDown className="text-emerald-400 ml-1" />
+            </button>
+          </div>
+        )}
       </div>
+  
+      <Tooltip id="room-id-tooltip" />
+
     </div>
   );
-};
+}
 
 export default HeaderCard;
